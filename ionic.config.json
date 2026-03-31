@@ -1,0 +1,7 @@
+{
+  "name": "mi-registro",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
