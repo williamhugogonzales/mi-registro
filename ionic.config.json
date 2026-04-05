@@ -3,5 +3,12 @@
   "integrations": {
     "capacitor": {}
   },
-  "type": "angular-standalone"
+  "type": "angular-standalone",
+  "id": "mi-registro",
+  "appflows": [
+    {
+      "id": "mi-registro-android",
+      "platform": "android"
+    }
+  ]
 }

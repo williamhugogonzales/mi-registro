@@ -1,20 +1,83 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>📋 Registro de Personas</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Nuevo Registro</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <form [formGroup]="formulario">
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+        <ion-item [class.ion-invalid]="esInvalido('nombre')">
+          <ion-label position="floating">Nombre completo</ion-label>
+          <ion-input formControlName="nombre" type="text"></ion-input>
+        </ion-item>
+        <ion-note color="danger" *ngIf="esInvalido('nombre')">
+          El nombre es requerido (mínimo 2 caracteres)
+        </ion-note>
+
+        <ion-item [class.ion-invalid]="esInvalido('edad')" class="ion-margin-top">
+          <ion-label position="floating">Edad</ion-label>
+          <ion-input formControlName="edad" type="number"></ion-input>
+        </ion-item>
+        <ion-note color="danger" *ngIf="esInvalido('edad')">
+          Ingresa una edad válida (1-120)
+        </ion-note>
+
+        <ion-item [class.ion-invalid]="esInvalido('nacionalidad')" class="ion-margin-top">
+          <ion-label position="floating">Nacionalidad</ion-label>
+          <ion-input formControlName="nacionalidad" type="text"></ion-input>
+        </ion-item>
+        <ion-note color="danger" *ngIf="esInvalido('nacionalidad')">
+          La nacionalidad es requerida
+        </ion-note>
+
+        <ion-item class="ion-margin-top">
+          <ion-label>Sexo</ion-label>
+          <ion-select formControlName="sexo" placeholder="Seleccionar">
+            <ion-select-option value="masculino">Masculino</ion-select-option>
+            <ion-select-option value="femenino">Femenino</ion-select-option>
+            <ion-select-option value="otro">Otro</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-note color="danger" *ngIf="esInvalido('sexo')">
+          Selecciona una opción
+        </ion-note>
+
+        <ion-button expand="block" class="ion-margin-top" (click)="guardar()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          Guardar Registro
+        </ion-button>
+
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card *ngIf="personas.length > 0">
+    <ion-card-header>
+      <ion-card-title>Registros guardados ({{ personas.length }})</ion-card-title>
+    </ion-card-header>
+    <ion-list>
+      <ion-item *ngFor="let p of personas">
+        <ion-label>
+          <h2>{{ p.nombre }}</h2>
+          <p>{{ p.edad }} años · {{ p.nacionalidad }} · {{ p.sexo }}</p>
+          <p><small>Registrado: {{ p.fechaRegistro }}</small></p>
+        </ion-label>
+    
+      </ion-item>
+    </ion-list>
+  </ion-card>
+
+  <ion-card *ngIf="personas.length === 0">
+    <ion-card-content class="ion-text-center">
+      <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
+      <p>No hay registros aún</p>
+    </ion-card-content>
+  </ion-card>
+
 </ion-content>
