@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Persona } from '../models/persona.model';
 import { Observable } from 'rxjs';
@@ -10,17 +10,22 @@ export class SheetsService {
 
   constructor(private http: HttpClient) {}
 
-  async guardarFetch(persona: Persona): Promise<any> {
-  const response = await fetch(this.url, {
-    method: 'POST',
-    mode: 'no-cors',   // 👈 esto evita el error CORS
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(persona)
-  });
-  return response; // con no-cors no puedes leer la respuesta, pero sí guarda
-}
+  guardar(persona: Persona): Observable<any> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return this.http.post(this.url, persona, { headers });
+  }
 
   obtenerTodos(): Observable<Persona[]> {
     return this.http.get<Persona[]>(this.url);
+  }
+
+  async guardarFetch(persona: Persona): Promise<any> {
+    const response = await fetch(this.url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(persona)
+    });
+    return response;
   }
 }

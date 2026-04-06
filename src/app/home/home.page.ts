@@ -1,28 +1,45 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { IonicModule, ToastController, LoadingController } from '@ionic/angular';
+import {
+  IonHeader, IonToolbar, IonTitle, IonContent,
+  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+  IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
+  IonButton, IonIcon, IonList, IonNote,
+  ToastController, LoadingController
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { saveOutline, refreshOutline, trashOutline, peopleOutline } from 'ionicons/icons';
 import { SheetsService } from '../services/sheets.service';
 import { Persona } from '../models/persona.model';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, IonicModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IonHeader, IonToolbar, IonTitle, IonContent,
+    IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+    IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
+    IonButton, IonIcon, IonList, IonNote
+  ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss']
 })
 export class HomePage implements OnInit {
   formulario!: FormGroup;
   personas: Persona[] = [];
-  cargando = false;
+  cargandoDatos = false;
 
   constructor(
     private fb: FormBuilder,
     private sheetsService: SheetsService,
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController
-  ) {}
+  ) {
+    addIcons({ saveOutline, refreshOutline, trashOutline, peopleOutline });
+  }
 
   ngOnInit() {
     this.formulario = this.fb.group({
@@ -30,6 +47,21 @@ export class HomePage implements OnInit {
       edad:         ['', [Validators.required, Validators.min(1), Validators.max(120)]],
       nacionalidad: ['', Validators.required],
       sexo:         ['', Validators.required]
+    });
+    this.cargarPersonas();
+  }
+
+  cargarPersonas() {
+    this.cargandoDatos = true;
+    this.sheetsService.obtenerTodos().subscribe({
+      next: (datos) => {
+        this.personas = datos;
+        this.cargandoDatos = false;
+      },
+      error: () => {
+        this.mostrarToast('❌ Error al cargar datos', 'danger');
+        this.cargandoDatos = false;
+      }
     });
   }
 
@@ -49,13 +81,30 @@ export class HomePage implements OnInit {
     };
 
     try {
-      await this.sheetsService.guardarFetch(persona);
-      this.formulario.reset();
-      this.mostrarToast('✅ Guardado en Google Sheets', 'success');
+      // Intenta con HttpClient (funciona en APK)
+      this.sheetsService.guardar(persona).subscribe({
+        next: async () => {
+          await loading.dismiss();
+          this.formulario.reset();
+          setTimeout(() => this.cargarPersonas(), 1000);
+          this.mostrarToast('✅ Guardado en Google Sheets', 'success');
+        },
+        error: async () => {
+          // Si falla por CORS (web), usa guardarFetch
+          try {
+            await this.sheetsService.guardarFetch(persona);
+            await loading.dismiss();
+            this.formulario.reset();
+            this.mostrarToast('✅ Guardado en Google Sheets', 'success');
+          } catch (e) {
+            await loading.dismiss();
+            this.mostrarToast('❌ Error al guardar', 'danger');
+          }
+        }
+      });
     } catch (error) {
-      this.mostrarToast('❌ Error al guardar', 'danger');
-    } finally {
       await loading.dismiss();
+      this.mostrarToast('❌ Error al guardar', 'danger');
     }
   }
 
@@ -63,7 +112,7 @@ export class HomePage implements OnInit {
     const toast = await this.toastCtrl.create({
       message: mensaje,
       duration: 2500,
-      color: color,
+      color,
       position: 'top'
     });
     toast.present();
