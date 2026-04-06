@@ -1,7 +1,12 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>📋 Registro de Personas</ion-title>
-  </ion-toolbar>
+  <ion-title>📋 Registro de Personas</ion-title>
+  <ion-buttons slot="end">
+    <ion-button (click)="cargarPersonas()">
+      <ion-icon name="refresh-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">

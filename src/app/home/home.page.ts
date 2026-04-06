@@ -5,7 +5,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonButton, IonIcon, IonList, IonNote,
+  IonButton, IonIcon, IonList, IonNote, IonButtons,
   ToastController, LoadingController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -22,7 +22,7 @@ import { Persona } from '../models/persona.model';
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonButton, IonIcon, IonList, IonNote
+    IonButton, IonIcon, IonList, IonNote, IonButtons
   ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss']
