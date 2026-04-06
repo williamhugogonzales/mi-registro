@@ -87,8 +87,8 @@ export class HomePage implements OnInit {
   await loading.dismiss();
   this.formulario.reset();
   this.mostrarToast('✅ Guardado en Google Sheets', 'success');
-  // Recarga la lista después de 2 segundos
-  setTimeout(() => this.cargarPersonas(), 2000);
+  // Recarga la lista después de que desaparezca el toast (3 segundos)
+  setTimeout(() => this.cargarPersonas(), 3000);
 },
         error: async () => {
           // Si falla por CORS (web), usa guardarFetch
@@ -97,6 +97,8 @@ export class HomePage implements OnInit {
             await loading.dismiss();
             this.formulario.reset();
             this.mostrarToast('✅ Guardado en Google Sheets', 'success');
+            // Recarga la lista después de que desaparezca el toast (3 segundos)
+            setTimeout(() => this.cargarPersonas(), 3000);
           } catch (e) {
             await loading.dismiss();
             this.mostrarToast('❌ Error al guardar', 'danger');
