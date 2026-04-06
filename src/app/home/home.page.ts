@@ -84,11 +84,12 @@ export class HomePage implements OnInit {
       // Intenta con HttpClient (funciona en APK)
       this.sheetsService.guardar(persona).subscribe({
         next: async () => {
-          await loading.dismiss();
-          this.formulario.reset();
-          setTimeout(() => this.cargarPersonas(), 1000);
-          this.mostrarToast('✅ Guardado en Google Sheets', 'success');
-        },
+  await loading.dismiss();
+  this.formulario.reset();
+  this.mostrarToast('✅ Guardado en Google Sheets', 'success');
+  // Recarga la lista después de 2 segundos
+  setTimeout(() => this.cargarPersonas(), 2000);
+},
         error: async () => {
           // Si falla por CORS (web), usa guardarFetch
           try {
