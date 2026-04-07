@@ -6,3 +6,7 @@ export interface Persona {
   sexo: string;
   fechaRegistro: string;
 }
+
+export interface PersonaConAccion extends Persona {
+  accion: 'CREATE' | 'UPDATE';
+}
