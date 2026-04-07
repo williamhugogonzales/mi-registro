@@ -12,14 +12,14 @@ export class SheetsService {
 
   guardar(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Observable<any> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    const personaConAccion: PersonaConAccion = { ...persona, accion };
-    return this.http.post(this.url, personaConAccion, { headers });
+    const data = [persona.id, persona.nombre, persona.edad, persona.nacionalidad, persona.sexo, persona.fechaRegistro, accion];
+    return this.http.post(this.url, data, { headers });
   }
 
   eliminarHttp(id: string): Observable<any> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    const body = { accion: 'DELETE', id };
-    return this.http.post(this.url, body, { headers });
+    const data = ['DELETE', id];
+    return this.http.post(this.url, data, { headers });
   }
 
   obtenerTodos(): Observable<Persona[]> {
@@ -27,24 +27,24 @@ export class SheetsService {
   }
 
   async guardarFetch(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<any> {
-    const personaConAccion: PersonaConAccion = { ...persona, accion };
+    const data = [persona.id, persona.nombre, persona.edad, persona.nacionalidad, persona.sexo, persona.fechaRegistro, accion];
     const response = await fetch(this.url, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(personaConAccion)
+      body: JSON.stringify(data)
     });
     return response;
   }
 
   async eliminar(id: string): Promise<any> {
-    const body = JSON.stringify({ accion: 'DELETE', id });
-    console.log('Enviando eliminación fetch con body:', body);
+    const data = ['DELETE', id];
+    console.log('Enviando eliminación fetch con body:', JSON.stringify(data));
     const response = await fetch(this.url, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body
+      body: JSON.stringify(data)
     });
     console.log('Respuesta de eliminación fetch:', response);
     if (response.type === 'opaque') {
