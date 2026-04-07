@@ -16,6 +16,12 @@ export class SheetsService {
     return this.http.post(this.url, personaConAccion, { headers });
   }
 
+  eliminarHttp(id: string): Observable<any> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    const body = { accion: 'DELETE', id };
+    return this.http.post(this.url, body, { headers });
+  }
+
   obtenerTodos(): Observable<Persona[]> {
     return this.http.get<Persona[]>(`${this.url}?t=${Date.now()}`);
   }
