@@ -179,15 +179,33 @@ export class HomePage implements OnInit {
             await loading.present();
 
             try {
-              console.log('Llamando sheetsService.eliminar con ID:', persona.id);
-              await this.sheetsService.eliminar(persona.id);
-              console.log('Eliminación exitosa con fetch');
-              this.actualizarListaLocalEliminada(persona.id);
-              await loading.dismiss();
-              this.mostrarToast('🗑️ Registro eliminado', 'success');
-              this.cargarPersonas();
+              // Intenta con HttpClient (funciona en APK)
+              this.sheetsService.eliminarHttp(persona.id).subscribe({
+                next: async () => {
+                  console.log('Eliminación exitosa con HttpClient');
+                  this.actualizarListaLocalEliminada(persona.id);
+                  await loading.dismiss();
+                  this.mostrarToast('🗑️ Registro eliminado', 'success');
+                  this.cargarPersonas();
+                },
+                error: async () => {
+                  // Si falla por CORS (web), usa eliminar fetch
+                  try {
+                    await this.sheetsService.eliminar(persona.id);
+                    console.log('Eliminación exitosa con fetch');
+                    this.actualizarListaLocalEliminada(persona.id);
+                    await loading.dismiss();
+                    this.mostrarToast('🗑️ Registro eliminado', 'success');
+                    this.cargarPersonas();
+                  } catch (e) {
+                    console.log('Error en eliminación fetch:', e);
+                    await loading.dismiss();
+                    this.mostrarToast('❌ Error al eliminar', 'danger');
+                  }
+                }
+              });
             } catch (error) {
-              console.log('Error en eliminación:', error);
+              console.log('Error general en eliminación:', error);
               await loading.dismiss();
               this.mostrarToast('❌ Error al eliminar', 'danger');
             }
