@@ -11,14 +11,18 @@ export class SheetsService {
   constructor(private http: HttpClient) {}
 
   guardar(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Observable<any> {
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     const data = [persona.id, persona.nombre, persona.edad, persona.nacionalidad, persona.sexo, persona.fechaRegistro, accion];
+    console.log('APK - Enviando array a Google Sheets:', data);
+    console.log('APK - Persona completa:', persona);
+    console.log('APK - Acción:', accion);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     return this.http.post(this.url, data, { headers });
   }
 
   eliminarHttp(id: string): Observable<any> {
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     const data = ['DELETE', id];
+    console.log('APK - Enviando eliminación array:', data);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     return this.http.post(this.url, data, { headers });
   }
 
@@ -28,6 +32,9 @@ export class SheetsService {
 
   async guardarFetch(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<any> {
     const data = [persona.id, persona.nombre, persona.edad, persona.nacionalidad, persona.sexo, persona.fechaRegistro, accion];
+    console.log('WEB - Enviando array a Google Sheets:', data);
+    console.log('WEB - Persona completa:', persona);
+    console.log('WEB - Acción:', accion);
     const response = await fetch(this.url, {
       method: 'POST',
       mode: 'no-cors',
@@ -39,7 +46,7 @@ export class SheetsService {
 
   async eliminar(id: string): Promise<any> {
     const data = ['DELETE', id];
-    console.log('Enviando eliminación fetch con body:', JSON.stringify(data));
+    console.log('WEB - Enviando eliminación fetch con body:', JSON.stringify(data));
     const response = await fetch(this.url, {
       method: 'POST',
       mode: 'no-cors',
