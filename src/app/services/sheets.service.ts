@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Persona, PersonaConAccion } from '../models/persona.model';
 import { Observable } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
@@ -13,17 +14,43 @@ export class SheetsService {
   guardar(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Observable<any> {
     const data = [persona.id, persona.nombre, persona.edad, persona.nacionalidad, persona.sexo, persona.fechaRegistro, accion];
     console.log('APK - Enviando array a Google Sheets:', data);
-    console.log('APK - Persona completa:', persona);
-    console.log('APK - Acción:', accion);
+    console.log('APK - URL destino:', this.url);
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    return this.http.post(this.url, data, { headers });
+    return this.http.post(this.url, data, { headers }).pipe(
+      tap(response => {
+        console.log('APK - Respuesta exitosa del servidor:', response);
+      }),
+      catchError(error => {
+        console.error('APK - Error en petición HTTP:', error);
+        console.error('APK - Status code:', error.status);
+        console.error('APK - Status text:', error.statusText);
+        if (error.error) {
+          console.error('APK - Error body:', error.error);
+        }
+        throw error;
+      })
+    );
   }
 
   eliminarHttp(id: string): Observable<any> {
     const data = ['DELETE', id];
     console.log('APK - Enviando eliminación array:', data);
+    console.log('APK - URL destino:', this.url);
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    return this.http.post(this.url, data, { headers });
+    return this.http.post(this.url, data, { headers }).pipe(
+      tap(response => {
+        console.log('APK - Respuesta eliminación exitosa:', response);
+      }),
+      catchError(error => {
+        console.error('APK - Error en eliminación HTTP:', error);
+        console.error('APK - Status code:', error.status);
+        console.error('APK - Status text:', error.statusText);
+        if (error.error) {
+          console.error('APK - Error body:', error.error);
+        }
+        throw error;
+      })
+    );
   }
 
   obtenerTodos(): Observable<Persona[]> {
