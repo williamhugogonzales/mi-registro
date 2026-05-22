@@ -29,7 +29,7 @@ import { Persona } from '../models/persona.model';
 })
 export class HomePage implements OnInit {
   @ViewChild('modalEditar') modalEditar: IonModal | null = null;
-  
+
   formulario!: FormGroup;
   personas: Persona[] = [];
   cargandoDatos = false;
@@ -56,6 +56,7 @@ export class HomePage implements OnInit {
     this.cargarPersonas();
   }
 
+  // ─── CARGAR LISTA ─────────────────────────────────────────────────────────
   cargarPersonas() {
     this.cargandoDatos = true;
     this.sheetsService.obtenerTodos().subscribe({
@@ -70,25 +71,21 @@ export class HomePage implements OnInit {
     });
   }
 
-  actualizarListaLocalEliminada(id: string) {
-    this.personas = this.personas.filter(p => p.id !== id);
-  }
-
-  trackById(index: number, persona: Persona) {
-    return persona.id;
-  }
-
+  // ─── GUARDAR (CREATE / UPDATE) ────────────────────────────────────────────
   async guardar() {
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
       return;
     }
 
-    const loading = await this.loadingCtrl.create({ message: this.editandoId ? 'Actualizando...' : 'Guardando...' });
+    const esEdicion = !!this.editandoId;
+    const accion: 'CREATE' | 'UPDATE' = esEdicion ? 'UPDATE' : 'CREATE';
+
+    const loading = await this.loadingCtrl.create({
+      message: esEdicion ? 'Actualizando...' : 'Guardando...'
+    });
     await loading.present();
 
-    const esEdicion = !!this.editandoId;
-    const accion = esEdicion ? 'UPDATE' : 'CREATE';
     const persona: Persona = {
       id: this.editandoId || Date.now().toString(),
       ...this.formulario.value,
@@ -96,55 +93,41 @@ export class HomePage implements OnInit {
     };
 
     try {
-      // Intenta con HttpClient (funciona en APK)
-      this.sheetsService.guardar(persona, accion).subscribe({
-        next: async () => {
-  await loading.dismiss();
-  this.formulario.reset();
-  this.editandoId = null;
-  this.personaEditando = null;
-  this.modalEditar?.dismiss();
-  const mensaje = esEdicion ? '✏️ Registro actualizado' : '✅ Guardado en Google Sheets';
-  this.mostrarToast(mensaje, 'success');
-  this.cargarPersonas();
-},
-        error: async () => {
-          // Si falla por CORS (web), usa guardarFetch
-          try {
-            await this.sheetsService.guardarFetch(persona, accion);
-            await loading.dismiss();
-            this.formulario.reset();
-            this.editandoId = null;
-            this.personaEditando = null;
-            this.modalEditar?.dismiss();
-            const mensaje = esEdicion ? '✏️ Registro actualizado' : '✅ Guardado en Google Sheets';
-            this.mostrarToast(mensaje, 'success');
-            this.cargarPersonas();
-          } catch (e) {
-            await loading.dismiss();
-            this.mostrarToast('❌ Error al guardar', 'danger');
-          }
-        }
-      });
+      await this.sheetsService.guardar(persona, accion);
+      await loading.dismiss();
+
+      this.formulario.reset();
+      this.editandoId = null;
+      this.personaEditando = null;
+      this.modalEditar?.dismiss();
+
+      const mensaje = esEdicion ? '✏️ Registro actualizado' : '✅ Guardado en Google Sheets';
+      this.mostrarToast(mensaje, 'success');
+
+      // Espera 1.5s para que el Apps Script procese antes de recargar la lista
+      setTimeout(() => this.cargarPersonas(), 1500);
+
     } catch (error) {
       await loading.dismiss();
+      console.error('[HomePage] Error al guardar:', error);
       this.mostrarToast('❌ Error al guardar', 'danger');
     }
   }
 
+  // ─── EDITAR ───────────────────────────────────────────────────────────────
   editar(persona: Persona) {
     this.editandoId = persona.id;
     this.personaEditando = persona;
     this.formulario.patchValue({
-      nombre: persona.nombre,
-      edad: persona.edad,
+      nombre:       persona.nombre,
+      edad:         persona.edad,
       nacionalidad: persona.nacionalidad,
-      sexo: persona.sexo
+      sexo:         persona.sexo
     });
-    // Abre el modal
     this.modalEditar?.present();
   }
 
+  // ─── NUEVO REGISTRO ───────────────────────────────────────────────────────
   nuevoRegistro() {
     this.editandoId = null;
     this.personaEditando = null;
@@ -152,6 +135,7 @@ export class HomePage implements OnInit {
     this.modalEditar?.present();
   }
 
+  // ─── CANCELAR EDICIÓN ─────────────────────────────────────────────────────
   cancelarEdicion() {
     this.editandoId = null;
     this.personaEditando = null;
@@ -159,10 +143,8 @@ export class HomePage implements OnInit {
     this.modalEditar?.dismiss();
   }
 
+  // ─── ELIMINAR ─────────────────────────────────────────────────────────────
   async eliminar(persona: Persona) {
-    console.log('Intentando eliminar persona:', persona);
-    console.log('ID de la persona:', persona.id);
-
     const alert = await this.alertCtrl.create({
       header: 'Eliminar registro',
       message: `¿Estás seguro de que deseas eliminar a ${persona.nombre}?`,
@@ -179,34 +161,19 @@ export class HomePage implements OnInit {
             await loading.present();
 
             try {
-              // Intenta con HttpClient (funciona en APK)
-              this.sheetsService.eliminarHttp(persona.id).subscribe({
-                next: async () => {
-                  console.log('Eliminación exitosa con HttpClient');
-                  this.actualizarListaLocalEliminada(persona.id);
-                  await loading.dismiss();
-                  this.mostrarToast('🗑️ Registro eliminado', 'success');
-                  this.cargarPersonas();
-                },
-                error: async () => {
-                  // Si falla por CORS (web), usa eliminar fetch
-                  try {
-                    await this.sheetsService.eliminar(persona.id);
-                    console.log('Eliminación exitosa con fetch');
-                    this.actualizarListaLocalEliminada(persona.id);
-                    await loading.dismiss();
-                    this.mostrarToast('🗑️ Registro eliminado', 'success');
-                    this.cargarPersonas();
-                  } catch (e) {
-                    console.log('Error en eliminación fetch:', e);
-                    await loading.dismiss();
-                    this.mostrarToast('❌ Error al eliminar', 'danger');
-                  }
-                }
-              });
-            } catch (error) {
-              console.log('Error general en eliminación:', error);
+              await this.sheetsService.eliminar(persona.id);
+
+              // Actualiza la lista local inmediatamente sin esperar recarga
+              this.actualizarListaLocalEliminada(persona.id);
               await loading.dismiss();
+              this.mostrarToast('🗑️ Registro eliminado', 'success');
+
+              // Recarga desde Google Sheets para confirmar
+              setTimeout(() => this.cargarPersonas(), 1500);
+
+            } catch (error) {
+              await loading.dismiss();
+              console.error('[HomePage] Error al eliminar:', error);
               this.mostrarToast('❌ Error al eliminar', 'danger');
             }
           }
@@ -214,6 +181,15 @@ export class HomePage implements OnInit {
       ]
     });
     await alert.present();
+  }
+
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
+  actualizarListaLocalEliminada(id: string) {
+    this.personas = this.personas.filter(p => p.id !== id);
+  }
+
+  trackById(index: number, persona: Persona) {
+    return persona.id;
   }
 
   async mostrarToast(mensaje: string, color: string) {
