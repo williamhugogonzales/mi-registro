@@ -4,6 +4,7 @@ import { environment } from '../../environments/environment';
 import { Persona } from '../models/persona.model';
 import { Observable } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
+import { CapacitorHttp } from '@capacitor/core';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
@@ -30,7 +31,7 @@ export class SheetsService {
     console.log(`[SheetsService] ${accion} - Plataforma:`, Capacitor.getPlatform());
     console.log(`[SheetsService] ${accion} - Datos:`, data);
 
-    if (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+    if (Capacitor.isNativePlatform()) {
       await this.enviarConCapacitorHttp(data);
     } else {
       await this.enviarConFetch(data);
@@ -43,14 +44,14 @@ export class SheetsService {
     console.log('[SheetsService] DELETE - Plataforma:', Capacitor.getPlatform());
     console.log('[SheetsService] DELETE - Datos:', data);
 
-    if (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+    if (Capacitor.isNativePlatform()) {
       await this.enviarConCapacitorHttp(data);
     } else {
       await this.enviarConFetch(data);
     }
   }
 
-  // ─── Web: fetch con no-cors (funciona en browser) ─────────────────────────
+  // ─── Web: fetch con no-cors ───────────────────────────────────────────────
   private async enviarConFetch(data: any[]): Promise<void> {
     console.log('[SheetsService] Usando fetch (web)');
     await fetch(this.url, {
@@ -62,19 +63,14 @@ export class SheetsService {
     console.log('[SheetsService] fetch enviado correctamente');
   }
 
-  // ─── Android/iOS: plugin HTTP que sigue redirects 302 ────────────────────
+  // ─── Android/iOS: CapacitorHttp nativo (incluido en @capacitor/core) ──────
   private async enviarConCapacitorHttp(data: any[]): Promise<void> {
-    console.log('[SheetsService] Usando CapacitorHttp (nativo)');
-
-    // Importación dinámica para no romper la web
-    const { CapacitorHttp } = await import('@capacitor/core') as any;
-
+    console.log('[SheetsService] Usando CapacitorHttp nativo');
     const response = await CapacitorHttp.post({
       url: this.url,
       headers: { 'Content-Type': 'text/plain' },
       data: JSON.stringify(data)
     });
-
     console.log('[SheetsService] Respuesta CapacitorHttp:', response.status, response.data);
   }
 }
