@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Persona } from '../models/persona.model';
 import { Observable } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
@@ -10,13 +11,12 @@ export class SheetsService {
 
   constructor(private http: HttpClient) {}
 
-  // ─── LECTURA: GET no tiene problemas de CORS ──────────────────────────────
+  // ─── LECTURA ──────────────────────────────────────────────────────────────
   obtenerTodos(): Observable<Persona[]> {
     return this.http.get<Persona[]>(`${this.url}?t=${Date.now()}`);
   }
 
   // ─── GUARDAR (CREATE / UPDATE) ────────────────────────────────────────────
-  // Usa fetch con no-cors y text/plain: funciona igual en web y en APK/Android
   async guardar(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
     const data = [
       persona.id,
@@ -27,30 +27,54 @@ export class SheetsService {
       persona.fechaRegistro,
       accion
     ];
-    console.log(`[SheetsService] ${accion} - Enviando datos:`, data);
+    console.log(`[SheetsService] ${accion} - Plataforma:`, Capacitor.getPlatform());
+    console.log(`[SheetsService] ${accion} - Datos:`, data);
 
-    await fetch(this.url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data)
-    });
-
-    console.log(`[SheetsService] ${accion} - Petición enviada correctamente`);
+    if (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+      await this.enviarConCapacitorHttp(data);
+    } else {
+      await this.enviarConFetch(data);
+    }
   }
 
   // ─── ELIMINAR ─────────────────────────────────────────────────────────────
   async eliminar(id: string): Promise<void> {
     const data = ['DELETE', id];
-    console.log('[SheetsService] DELETE - Enviando datos:', data);
+    console.log('[SheetsService] DELETE - Plataforma:', Capacitor.getPlatform());
+    console.log('[SheetsService] DELETE - Datos:', data);
 
+    if (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+      await this.enviarConCapacitorHttp(data);
+    } else {
+      await this.enviarConFetch(data);
+    }
+  }
+
+  // ─── Web: fetch con no-cors (funciona en browser) ─────────────────────────
+  private async enviarConFetch(data: any[]): Promise<void> {
+    console.log('[SheetsService] Usando fetch (web)');
     await fetch(this.url, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data)
     });
+    console.log('[SheetsService] fetch enviado correctamente');
+  }
 
-    console.log('[SheetsService] DELETE - Petición enviada correctamente');
+  // ─── Android/iOS: plugin HTTP que sigue redirects 302 ────────────────────
+  private async enviarConCapacitorHttp(data: any[]): Promise<void> {
+    console.log('[SheetsService] Usando CapacitorHttp (nativo)');
+
+    // Importación dinámica para no romper la web
+    const { CapacitorHttp } = await import('@capacitor/core') as any;
+
+    const response = await CapacitorHttp.post({
+      url: this.url,
+      headers: { 'Content-Type': 'text/plain' },
+      data: JSON.stringify(data)
+    });
+
+    console.log('[SheetsService] Respuesta CapacitorHttp:', response.status, response.data);
   }
 }
