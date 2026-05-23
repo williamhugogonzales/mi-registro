@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Persona } from '../models/persona.model';
+import { Salud } from '../models/salud.model';
 import { Observable } from 'rxjs';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
@@ -12,12 +13,16 @@ export class SheetsService {
   constructor(private http: HttpClient) {}
 
   // ─── LECTURA ──────────────────────────────────────────────────────────────
-  obtenerTodos(): Observable<Persona[]> {
-    return this.http.get<Persona[]>(`${this.url}?t=${Date.now()}`);
+  obtenerPersonas(): Observable<Persona[]> {
+    return this.http.get<Persona[]>(`${this.url}?hoja=Personas&t=${Date.now()}`);
   }
 
-  // ─── GUARDAR ─────────────────────────────────────────────────────────────
-  async guardar(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
+  obtenerSalud(): Observable<Salud[]> {
+    return this.http.get<Salud[]>(`${this.url}?hoja=Salud&t=${Date.now()}`);
+  }
+
+  // ─── GUARDAR PERSONA ──────────────────────────────────────────────────────
+  async guardarPersona(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
     const data = [
       persona.id,
       persona.nombre,
@@ -25,92 +30,60 @@ export class SheetsService {
       persona.nacionalidad,
       persona.sexo,
       persona.fechaRegistro,
-      accion
+      accion,
+      'Personas'
     ];
+    console.log(`[SheetsService] Persona ${accion}:`, data);
     await this.enviar(data, accion);
   }
 
-  // ─── ELIMINAR ────────────────────────────────────────────────────────────
-  async eliminar(id: string): Promise<void> {
-    const data = ['DELETE', id];
-    await this.enviar(data, 'DELETE');
+  // ─── GUARDAR SALUD ────────────────────────────────────────────────────────
+  async guardarSalud(salud: Salud, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
+    const data = [
+      salud.id_salud,
+      salud.id_persona,
+      salud.peso,
+      salud.talla,
+      salud.enfermedades,
+      salud.fechaRegistro,
+      accion,
+      'Salud'
+    ];
+    console.log(`[SheetsService] Salud ${accion}:`, data);
+    await this.enviar(data, accion);
   }
 
-  // ─── ENVÍO CON 3 INTENTOS ────────────────────────────────────────────────
+  // ─── ELIMINAR ─────────────────────────────────────────────────────────────
+  async eliminarPersona(id: string): Promise<void> {
+    await this.enviar(['DELETE', id, 'Personas'], 'DELETE');
+  }
+
+  async eliminarSalud(id_salud: string): Promise<void> {
+    await this.enviar(['DELETE', id_salud, 'Salud'], 'DELETE');
+  }
+
+  // ─── ENVÍO UNIFICADO ──────────────────────────────────────────────────────
   private async enviar(data: any[], operacion: string): Promise<void> {
-    const plataforma = Capacitor.getPlatform();
-    const esNativo = Capacitor.isNativePlatform();
     const body = JSON.stringify(data);
+    const esNativo = Capacitor.isNativePlatform();
+    console.log(`[SheetsService] ${operacion} | Nativo: ${esNativo} | Body: ${body}`);
 
-    console.log(`[Sheets] ====== INICIO ${operacion} ======`);
-    console.log(`[Sheets] Plataforma: ${plataforma} | Nativo: ${esNativo}`);
-    console.log(`[Sheets] URL: ${this.url}`);
-    console.log(`[Sheets] Body: ${body}`);
-
-    // MÉTODO 1: CapacitorHttp (nativo, solo en APK)
     if (esNativo) {
-      try {
-        console.log('[Sheets] Intentando MÉTODO 1: CapacitorHttp...');
-        const response = await CapacitorHttp.post({
-          url: this.url,
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          data: body,
-          webFetchExtra: { redirect: 'follow' }
-        });
-        console.log('[Sheets] MÉTODO 1 OK - Status:', response.status);
-        console.log('[Sheets] MÉTODO 1 OK - Data:', JSON.stringify(response.data));
-        return;
-      } catch (e: any) {
-        console.error('[Sheets] MÉTODO 1 FALLÓ:', e?.message || e);
-      }
-
-      // MÉTODO 2: fetch nativo en Android con redirect follow
-      try {
-        console.log('[Sheets] Intentando MÉTODO 2: fetch con redirect follow...');
-        const response = await fetch(this.url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body: body,
-          redirect: 'follow'
-        });
-        console.log('[Sheets] MÉTODO 2 OK - Status:', response.status, response.type);
-        return;
-      } catch (e: any) {
-        console.error('[Sheets] MÉTODO 2 FALLÓ:', e?.message || e);
-      }
-
-      // MÉTODO 3: fetch con no-cors como último recurso
-      try {
-        console.log('[Sheets] Intentando MÉTODO 3: fetch no-cors...');
-        await fetch(this.url, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: body
-        });
-        console.log('[Sheets] MÉTODO 3 enviado (respuesta opaca)');
-        return;
-      } catch (e: any) {
-        console.error('[Sheets] MÉTODO 3 FALLÓ:', e?.message || e);
-        throw new Error('Todos los métodos fallaron en Android');
-      }
-
+      const response = await CapacitorHttp.post({
+        url: this.url,
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        data: body,
+        webFetchExtra: { redirect: 'follow' }
+      });
+      console.log(`[SheetsService] Respuesta: ${response.status}`, response.data);
     } else {
-      // WEB: fetch con no-cors
-      try {
-        console.log('[Sheets] Intentando fetch (web)...');
-        await fetch(this.url, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: body
-        });
-        console.log('[Sheets] fetch web enviado correctamente');
-      } catch (e: any) {
-        console.error('[Sheets] fetch web FALLÓ:', e?.message || e);
-        throw e;
-      }
+      await fetch(this.url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body
+      });
+      console.log(`[SheetsService] fetch web enviado`);
     }
   }
 }
- 
