@@ -5,18 +5,19 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonButton, IonIcon, IonList, IonNote, IonButtons,
+  IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
   ToastController, LoadingController, AlertController, IonModal, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   saveOutline, refreshOutline, trashOutline, peopleOutline,
   createOutline, closeOutline, addOutline, heartOutline,
-  medkitOutline, chevronDownOutline
+  medkitOutline, addCircleOutline, shieldCheckmarkOutline
 } from 'ionicons/icons';
 import { SheetsService } from '../services/sheets.service';
 import { Persona } from '../models/persona.model';
 import { Salud } from '../models/salud.model';
+import { Vacuna } from '../models/vacuna.model';
 
 @Component({
   selector: 'app-home',
@@ -26,44 +27,52 @@ import { Salud } from '../models/salud.model';
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonButton, IonIcon, IonList, IonNote, IonButtons,
+    IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
     IonModal, IonFab, IonFabButton
   ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss']
 })
 export class HomePage implements OnInit {
-  @ViewChild('modalPersona') modalPersona: IonModal | null = null;
-  @ViewChild('modalSalud') modalSalud: IonModal | null = null;
+  @ViewChild('modalPersona')  modalPersona:  IonModal | null = null;
+  @ViewChild('modalSalud')    modalSalud:    IonModal | null = null;
+  @ViewChild('modalVacunas')  modalVacunas:  IonModal | null = null;
+  @ViewChild('modalVacuna')   modalVacuna:   IonModal | null = null;
 
   // ─── Formularios ──────────────────────────────────────────────────────────
   formPersona!: FormGroup;
-  formSalud!: FormGroup;
+  formSalud!:   FormGroup;
+  formVacuna!:  FormGroup;
 
   // ─── Datos ────────────────────────────────────────────────────────────────
-  personas: Persona[] = [];
-  registrosSalud: Salud[] = [];
+  personas:       Persona[] = [];
+  registrosSalud: Salud[]   = [];
+  todasVacunas:   Vacuna[]  = [];
   cargandoDatos = false;
 
-  // ─── Estado edición persona ───────────────────────────────────────────────
-  editandoPersonaId: string | null = null;
-  personaEditando: Persona | null = null;
+  // ─── Estado persona ───────────────────────────────────────────────────────
+  editandoPersonaId:  string | null = null;
+  personaEditando:    Persona | null = null;
 
-  // ─── Estado edición salud ─────────────────────────────────────────────────
-  editandoSaludId: string | null = null;
+  // ─── Estado salud ─────────────────────────────────────────────────────────
+  editandoSaludId:              string | null  = null;
   personaSeleccionadaParaSalud: Persona | null = null;
+
+  // ─── Estado vacunas ───────────────────────────────────────────────────────
+  personaSeleccionadaParaVacunas: Persona | null = null;
+  editandoVacunaId:               string | null  = null;
 
   constructor(
     private fb: FormBuilder,
     private sheetsService: SheetsService,
-    private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController,
-    private alertCtrl: AlertController
+    private toastCtrl:    ToastController,
+    private loadingCtrl:  LoadingController,
+    private alertCtrl:    AlertController
   ) {
     addIcons({
       saveOutline, refreshOutline, trashOutline, peopleOutline,
       createOutline, closeOutline, addOutline, heartOutline,
-      medkitOutline, chevronDownOutline
+      medkitOutline, addCircleOutline, shieldCheckmarkOutline
     });
   }
 
@@ -81,17 +90,30 @@ export class HomePage implements OnInit {
       enfermedades: new FormControl('', Validators.required)
     });
 
+    this.formVacuna = this.fb.group({
+      tipo_vacuna:      new FormControl('', Validators.required),
+      fecha_aplicacion: new FormControl('', Validators.required),
+      proxima_dosis:    new FormControl(''),
+      observaciones:    new FormControl(''),
+      peso:             new FormControl('', [Validators.required, Validators.min(1), Validators.max(500)])
+    });
+
     this.cargarDatos();
   }
 
   // ─── Getters tipados para el template ─────────────────────────────────────
-  get nombreCtrl()       { return this.formPersona.get('nombre') as FormControl; }
-  get edadCtrl()         { return this.formPersona.get('edad') as FormControl; }
-  get nacionalidadCtrl() { return this.formPersona.get('nacionalidad') as FormControl; }
-  get sexoCtrl()         { return this.formPersona.get('sexo') as FormControl; }
-  get pesoCtrl()         { return this.formSalud.get('peso') as FormControl; }
-  get tallaCtrl()        { return this.formSalud.get('talla') as FormControl; }
-  get enfermedadesCtrl() { return this.formSalud.get('enfermedades') as FormControl; }
+  get nombreCtrl()          { return this.formPersona.get('nombre')       as FormControl; }
+  get edadCtrl()            { return this.formPersona.get('edad')         as FormControl; }
+  get nacionalidadCtrl()    { return this.formPersona.get('nacionalidad') as FormControl; }
+  get sexoCtrl()            { return this.formPersona.get('sexo')         as FormControl; }
+  get pesoCtrl()            { return this.formSalud.get('peso')           as FormControl; }
+  get tallaCtrl()           { return this.formSalud.get('talla')          as FormControl; }
+  get enfermedadesCtrl()    { return this.formSalud.get('enfermedades')   as FormControl; }
+  get tipoVacunaCtrl()      { return this.formVacuna.get('tipo_vacuna')      as FormControl; }
+  get fechaAplicacionCtrl() { return this.formVacuna.get('fecha_aplicacion') as FormControl; }
+  get proximaDosisCtrl()    { return this.formVacuna.get('proxima_dosis')    as FormControl; }
+  get observacionesCtrl()   { return this.formVacuna.get('observaciones')    as FormControl; }
+  get pesoVacunaCtrl()      { return this.formVacuna.get('peso')             as FormControl; }
 
   // ─── CARGAR DATOS ─────────────────────────────────────────────────────────
   cargarDatos() {
@@ -100,6 +122,7 @@ export class HomePage implements OnInit {
       next: (datos) => {
         this.personas = datos;
         this.cargarSalud();
+        this.cargarVacunas();
       },
       error: () => {
         this.mostrarToast('❌ Error al cargar personas', 'danger');
@@ -110,22 +133,58 @@ export class HomePage implements OnInit {
 
   cargarSalud() {
     this.sheetsService.obtenerSalud().subscribe({
-      next: (datos) => {
-        this.registrosSalud = datos;
-        this.cargandoDatos = false;
-      },
-      error: () => {
-        this.cargandoDatos = false;
-      }
+      next: (datos) => { this.registrosSalud = datos; },
+      error: () => {}
     });
   }
 
-  // ─── OBTENER SALUD DE UNA PERSONA ─────────────────────────────────────────
+  cargarVacunas() {
+    this.sheetsService.obtenerVacunas().subscribe({
+      next: (datos) => {
+        this.todasVacunas = datos;
+        this.cargandoDatos = false;
+      },
+      error: () => { this.cargandoDatos = false; }
+    });
+  }
+
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
   getSaludDePersona(idPersona: string): Salud | null {
     return this.registrosSalud.find(s => String(s.id_persona) === String(idPersona)) || null;
   }
 
-  // ─── MODAL PERSONA ────────────────────────────────────────────────────────
+  getVacunasDePersona(idPersona: string): Vacuna[] {
+    return this.todasVacunas.filter(v => String(v.id_persona) === String(idPersona));
+  }
+
+  trackById(index: number, item: any) { return item.id || item.id_vacuna; }
+
+  esInvalidoPersona(campo: string): boolean {
+    const ctrl = this.formPersona.get(campo);
+    return !!(ctrl?.invalid && ctrl?.touched);
+  }
+
+  esInvalidoSalud(campo: string): boolean {
+    const ctrl = this.formSalud.get(campo);
+    return !!(ctrl?.invalid && ctrl?.touched);
+  }
+
+  esInvalidoVacuna(campo: string): boolean {
+    const ctrl = this.formVacuna.get(campo);
+    return !!(ctrl?.invalid && ctrl?.touched);
+  }
+
+  async mostrarToast(mensaje: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message: mensaje, duration: 2500, color, position: 'top'
+    });
+    toast.present();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PERSONA
+  // ══════════════════════════════════════════════════════════════════════════
+
   abrirModalNuevaPersona() {
     this.editandoPersonaId = null;
     this.personaEditando = null;
@@ -137,10 +196,8 @@ export class HomePage implements OnInit {
     this.editandoPersonaId = persona.id;
     this.personaEditando = persona;
     this.formPersona.patchValue({
-      nombre:       persona.nombre,
-      edad:         persona.edad,
-      nacionalidad: persona.nacionalidad,
-      sexo:         persona.sexo
+      nombre: persona.nombre, edad: persona.edad,
+      nacionalidad: persona.nacionalidad, sexo: persona.sexo
     });
     this.modalPersona?.present();
   }
@@ -152,17 +209,11 @@ export class HomePage implements OnInit {
     this.modalPersona?.dismiss();
   }
 
-  // ─── GUARDAR PERSONA ──────────────────────────────────────────────────────
   async guardarPersona() {
-    if (this.formPersona.invalid) {
-      this.formPersona.markAllAsTouched();
-      return;
-    }
+    if (this.formPersona.invalid) { this.formPersona.markAllAsTouched(); return; }
 
     const esEdicion = !!this.editandoPersonaId;
-    const loading = await this.loadingCtrl.create({
-      message: esEdicion ? 'Actualizando...' : 'Guardando...'
-    });
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
     await loading.present();
 
     const persona: Persona = {
@@ -183,30 +234,34 @@ export class HomePage implements OnInit {
     }
   }
 
-  // ─── ELIMINAR PERSONA ─────────────────────────────────────────────────────
   async eliminarPersona(persona: Persona) {
     const alert = await this.alertCtrl.create({
       header: 'Eliminar persona',
-      message: `¿Eliminar a ${persona.nombre}? También se eliminarán sus datos de salud.`,
+      message: `¿Eliminar a ${persona.nombre}? También se eliminarán sus datos de salud y vacunas.`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Eliminar',
-          role: 'destructive',
+          text: 'Eliminar', role: 'destructive',
           handler: async () => {
             const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
             await loading.present();
             try {
+              // Eliminar salud vinculada
               const salud = this.getSaludDePersona(persona.id);
-              if (salud) {
-                await this.sheetsService.eliminarSalud(salud.id_salud);
+              if (salud) await this.sheetsService.eliminarSalud(salud.id_salud);
+
+              // Eliminar todas las vacunas vinculadas
+              const vacunas = this.getVacunasDePersona(persona.id);
+              for (const v of vacunas) {
+                await this.sheetsService.eliminarVacuna(v.id_vacuna);
               }
+
               await this.sheetsService.eliminarPersona(persona.id);
-              this.personas = this.personas.filter(p => p.id !== persona.id);
-              this.registrosSalud = this.registrosSalud.filter(s => String(s.id_persona) !== String(persona.id));
+              this.personas        = this.personas.filter(p => p.id !== persona.id);
+              this.registrosSalud  = this.registrosSalud.filter(s => String(s.id_persona) !== String(persona.id));
+              this.todasVacunas    = this.todasVacunas.filter(v => String(v.id_persona) !== String(persona.id));
               await loading.dismiss();
               this.mostrarToast('🗑️ Persona eliminada', 'success');
-              setTimeout(() => this.cargarDatos(), 1500);
             } catch {
               await loading.dismiss();
               this.mostrarToast('❌ Error al eliminar', 'danger');
@@ -218,16 +273,17 @@ export class HomePage implements OnInit {
     await alert.present();
   }
 
-  // ─── MODAL SALUD ──────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // SALUD
+  // ══════════════════════════════════════════════════════════════════════════
+
   abrirModalSalud(persona: Persona) {
     this.personaSeleccionadaParaSalud = persona;
     const saludExistente = this.getSaludDePersona(persona.id);
-
     if (saludExistente) {
       this.editandoSaludId = saludExistente.id_salud;
       this.formSalud.patchValue({
-        peso:         saludExistente.peso,
-        talla:        saludExistente.talla,
+        peso: saludExistente.peso, talla: saludExistente.talla,
         enfermedades: saludExistente.enfermedades
       });
     } else {
@@ -244,18 +300,12 @@ export class HomePage implements OnInit {
     this.modalSalud?.dismiss();
   }
 
-  // ─── GUARDAR SALUD ────────────────────────────────────────────────────────
   async guardarSalud() {
-    if (this.formSalud.invalid) {
-      this.formSalud.markAllAsTouched();
-      return;
-    }
+    if (this.formSalud.invalid) { this.formSalud.markAllAsTouched(); return; }
     if (!this.personaSeleccionadaParaSalud) return;
 
     const esEdicion = !!this.editandoSaludId;
-    const loading = await this.loadingCtrl.create({
-      message: esEdicion ? 'Actualizando salud...' : 'Guardando salud...'
-    });
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando salud...' : 'Guardando salud...' });
     await loading.present();
 
     const salud: Salud = {
@@ -277,28 +327,94 @@ export class HomePage implements OnInit {
     }
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
-  trackById(index: number, persona: Persona) {
-    return persona.id;
+  // ══════════════════════════════════════════════════════════════════════════
+  // VACUNAS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  abrirModalVacunas(persona: Persona) {
+    this.personaSeleccionadaParaVacunas = persona;
+    this.modalVacunas?.present();
   }
 
-  esInvalidoPersona(campo: string): boolean {
-    const ctrl = this.formPersona.get(campo);
-    return !!(ctrl?.invalid && ctrl?.touched);
+  cerrarModalVacunas() {
+    this.personaSeleccionadaParaVacunas = null;
+    this.modalVacunas?.dismiss();
   }
 
-  esInvalidoSalud(campo: string): boolean {
-    const ctrl = this.formSalud.get(campo);
-    return !!(ctrl?.invalid && ctrl?.touched);
+  abrirFormularioVacuna(vacuna?: Vacuna) {
+    if (vacuna) {
+      this.editandoVacunaId = vacuna.id_vacuna;
+      this.formVacuna.patchValue({
+        tipo_vacuna:      vacuna.tipo_vacuna,
+        fecha_aplicacion: vacuna.fecha_aplicacion,
+        proxima_dosis:    vacuna.proxima_dosis,
+        observaciones:    vacuna.observaciones,
+        peso:             vacuna.peso
+      });
+    } else {
+      this.editandoVacunaId = null;
+      this.formVacuna.reset();
+    }
+    this.modalVacuna?.present();
   }
 
-  async mostrarToast(mensaje: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message: mensaje,
-      duration: 2500,
-      color,
-      position: 'top'
+  cancelarVacuna() {
+    this.editandoVacunaId = null;
+    this.formVacuna.reset();
+    this.modalVacuna?.dismiss();
+  }
+
+  async guardarVacuna() {
+    if (this.formVacuna.invalid) { this.formVacuna.markAllAsTouched(); return; }
+    if (!this.personaSeleccionadaParaVacunas) return;
+
+    const esEdicion = !!this.editandoVacunaId;
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando vacuna...' : 'Guardando vacuna...' });
+    await loading.present();
+
+    const vacuna: Vacuna = {
+      id_vacuna:        this.editandoVacunaId || Date.now().toString(),
+      id_persona:       this.personaSeleccionadaParaVacunas.id,
+      ...this.formVacuna.value,
+      fechaRegistro:    new Date().toLocaleDateString('es-ES')
+    };
+
+    try {
+      await this.sheetsService.guardarVacuna(vacuna, esEdicion ? 'UPDATE' : 'CREATE');
+      await loading.dismiss();
+      this.cancelarVacuna();
+      this.mostrarToast(esEdicion ? '✏️ Vacuna actualizada' : '💉 Vacuna registrada', 'success');
+      setTimeout(() => this.cargarVacunas(), 1500);
+    } catch {
+      await loading.dismiss();
+      this.mostrarToast('❌ Error al guardar vacuna', 'danger');
+    }
+  }
+
+  async eliminarVacuna(vacuna: Vacuna) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar vacuna',
+      message: `¿Eliminar el registro de "${vacuna.tipo_vacuna}"?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar', role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
+            await loading.present();
+            try {
+              await this.sheetsService.eliminarVacuna(vacuna.id_vacuna);
+              this.todasVacunas = this.todasVacunas.filter(v => v.id_vacuna !== vacuna.id_vacuna);
+              await loading.dismiss();
+              this.mostrarToast('🗑️ Vacuna eliminada', 'success');
+            } catch {
+              await loading.dismiss();
+              this.mostrarToast('❌ Error al eliminar vacuna', 'danger');
+            }
+          }
+        }
+      ]
     });
-    toast.present();
+    await alert.present();
   }
 }
