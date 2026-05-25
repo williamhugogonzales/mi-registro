@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Persona } from '../models/persona.model';
+import { Mascota } from '../models/mascota.model';
 import { Salud } from '../models/salud.model';
 import { Vacuna } from '../models/vacuna.model';
 import { Observable } from 'rxjs';
@@ -14,8 +14,8 @@ export class SheetsService {
   constructor(private http: HttpClient) {}
 
   // ─── LECTURA ──────────────────────────────────────────────────────────────
-  obtenerPersonas(): Observable<Persona[]> {
-    return this.http.get<Persona[]>(`${this.url}?hoja=Personas&t=${Date.now()}`);
+  obtenerMascotas(): Observable<Mascota[]> {
+    return this.http.get<Mascota[]>(`${this.url}?hoja=Mascotas&t=${Date.now()}`);
   }
 
   obtenerSalud(): Observable<Salud[]> {
@@ -26,12 +26,12 @@ export class SheetsService {
     return this.http.get<Vacuna[]>(`${this.url}?hoja=Vacunas&t=${Date.now()}`);
   }
 
-  // ─── GUARDAR PERSONA ──────────────────────────────────────────────────────
-  async guardarPersona(persona: Persona, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
+  // ─── GUARDAR MASCOTA ──────────────────────────────────────────────────────
+  async guardarMascota(mascota: Mascota, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
     const data = [
-      persona.id, persona.nombre, persona.edad,
-      persona.nacionalidad, persona.sexo, persona.fechaRegistro,
-      accion, 'Personas'
+      mascota.id, mascota.nombre, mascota.especie, mascota.raza,
+      mascota.fecha_nacimiento, mascota.sexo, mascota.propietario,
+      mascota.fechaRegistro, accion, 'Mascotas'
     ];
     await this.enviar(data, accion);
   }
@@ -58,8 +58,8 @@ export class SheetsService {
   }
 
   // ─── ELIMINAR ─────────────────────────────────────────────────────────────
-  async eliminarPersona(id: string): Promise<void> {
-    await this.enviar(['DELETE', id, 'Personas'], 'DELETE');
+  async eliminarMascota(id: string): Promise<void> {
+    await this.enviar(['DELETE', id, 'Mascotas'], 'DELETE');
   }
 
   async eliminarSalud(id_salud: string): Promise<void> {
