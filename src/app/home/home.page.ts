@@ -1,33 +1,39 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
   IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
+  IonSegment, IonSegmentButton,
   ToastController, LoadingController, AlertController, IonModal, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   saveOutline, refreshOutline, trashOutline, pawOutline,
   createOutline, closeOutline, addOutline, heartOutline,
-  medkitOutline, addCircleOutline, shieldCheckmarkOutline
+  medkitOutline, addCircleOutline, shieldCheckmarkOutline,
+  nutritionOutline, restaurantOutline, timeOutline, flaskOutline
 } from 'ionicons/icons';
 import { SheetsService } from '../services/sheets.service';
 import { Mascota } from '../models/mascota.model';
 import { Salud } from '../models/salud.model';
 import { Vacuna } from '../models/vacuna.model';
+import { Desparasitacion } from '../models/desparasitacion.model';
+import { Comida } from '../models/comida.model';
+import { Excrecion } from '../models/excrecion.model';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
     IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
+    IonSegment, IonSegmentButton,
     IonModal, IonFab, IonFabButton
   ],
   templateUrl: './home.page.html',
@@ -38,24 +44,53 @@ export class HomePage implements OnInit {
   @ViewChild('modalSalud')    modalSalud:    IonModal | null = null;
   @ViewChild('modalVacunas')  modalVacunas:  IonModal | null = null;
   @ViewChild('modalVacuna')   modalVacuna:   IonModal | null = null;
+  @ViewChild('modalDesparas') modalDesparas: IonModal | null = null;
+  @ViewChild('modalDespara')  modalDespara:  IonModal | null = null;
+  @ViewChild('modalComidas')  modalComidas:  IonModal | null = null;
+  @ViewChild('modalComida')   modalComida:   IonModal | null = null;
+  @ViewChild('modalExcreciones') modalExcreciones: IonModal | null = null;
+  @ViewChild('modalExcrecion')   modalExcrecion:   IonModal | null = null;
 
   formMascota!: FormGroup;
   formSalud!:   FormGroup;
   formVacuna!:  FormGroup;
+  formDespara!: FormGroup;
+  formComida!:  FormGroup;
+  formExcrecion!: FormGroup;
 
-  mascotas:       Mascota[] = [];
-  registrosSalud: Salud[]   = [];
-  todasVacunas:   Vacuna[]  = [];
+  mascotas:       Mascota[]         = [];
+  registrosSalud: Salud[]           = [];
+  todasVacunas:   Vacuna[]          = [];
+  todasDesparas:  Desparasitacion[] = [];
+  todasComidas:   Comida[]          = [];
+  todasExcreciones: Excrecion[]      = [];
   cargandoDatos = false;
 
-  editandoMascotaId:  string | null  = null;
-  mascotaEditando:    Mascota | null = null;
+  // Estado mascota
+  editandoMascotaId: string | null  = null;
+  mascotaEditando:   Mascota | null = null;
 
-  editandoSaludId:               string | null  = null;
-  mascotaSeleccionadaParaSalud:  Mascota | null = null;
+  // Estado salud
+  editandoSaludId:              string | null  = null;
+  mascotaSeleccionadaParaSalud: Mascota | null = null;
 
+  // Estado vacunas
   mascotaSeleccionadaParaVacunas: Mascota | null = null;
   editandoVacunaId:               string | null  = null;
+
+  // Estado desparasitaciones
+  mascotaSeleccionadaParaDesparas: Mascota | null = null;
+  editandoDesparaId:               string | null  = null;
+
+  // Estado comidas
+  mascotaSeleccionadaParaComidas: Mascota | null = null;
+  editandoComidaId:               string | null  = null;
+
+  // Estado excreciones
+  mascotaSeleccionadaParaExcreciones: Mascota | null = null;
+  editandoExcrecionId:                string | null  = null;
+  vistaComidas: string = 'hoy'; // 'hoy' | 'historial'
+  fechaHoy: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -67,8 +102,12 @@ export class HomePage implements OnInit {
     addIcons({
       saveOutline, refreshOutline, trashOutline, pawOutline,
       createOutline, closeOutline, addOutline, heartOutline,
-      medkitOutline, addCircleOutline, shieldCheckmarkOutline
+      medkitOutline, addCircleOutline, shieldCheckmarkOutline,
+      nutritionOutline, restaurantOutline, timeOutline, flaskOutline,
     });
+    // Fecha de hoy en formato dd/mm/yyyy para comparar
+    const hoy = new Date();
+    this.fechaHoy = hoy.toLocaleDateString('es-ES');
   }
 
   ngOnInit() {
@@ -80,13 +119,11 @@ export class HomePage implements OnInit {
       sexo:             new FormControl('', Validators.required),
       propietario:      new FormControl('', [Validators.required, Validators.minLength(2)])
     });
-
     this.formSalud = this.fb.group({
       peso:         new FormControl('', [Validators.required, Validators.min(0.1), Validators.max(1000)]),
       talla:        new FormControl('', [Validators.required, Validators.min(1), Validators.max(300)]),
       enfermedades: new FormControl('', Validators.required)
     });
-
     this.formVacuna = this.fb.group({
       tipo_vacuna:      new FormControl('', Validators.required),
       fecha_aplicacion: new FormControl('', Validators.required),
@@ -94,110 +131,104 @@ export class HomePage implements OnInit {
       observaciones:    new FormControl(''),
       peso:             new FormControl('', [Validators.required, Validators.min(0.1), Validators.max(1000)])
     });
-
+    this.formDespara = this.fb.group({
+      nombre_desparasitante: new FormControl('', Validators.required),
+      fecha_aplicacion:      new FormControl('', Validators.required),
+      proxima_dosis:         new FormControl(''),
+      observaciones:         new FormControl(''),
+      peso:                  new FormControl('', [Validators.required, Validators.min(0.1), Validators.max(1000)])
+    });
+    this.formComida = this.fb.group({
+      tipo_comida:   new FormControl('', Validators.required),
+      cantidad:      new FormControl('', [Validators.required, Validators.min(1), Validators.max(9999)]),
+      hora:          new FormControl('', Validators.required),
+      observaciones: new FormControl('')
+    });
+    this.formExcrecion = this.fb.group({
+      tipo:          new FormControl('', Validators.required),
+      cantidad:      new FormControl('', Validators.required),
+      consistencia:  new FormControl(''),
+      color:         new FormControl(''),
+      hora:          new FormControl('', Validators.required),
+      observaciones: new FormControl('')
+    });
     this.cargarDatos();
   }
 
   // ─── Getters tipados ──────────────────────────────────────────────────────
-  get nombreCtrl()           { return this.formMascota.get('nombre')           as FormControl; }
-  get especieCtrl()          { return this.formMascota.get('especie')          as FormControl; }
-  get razaCtrl()             { return this.formMascota.get('raza')             as FormControl; }
-  get fechaNacimientoCtrl()  { return this.formMascota.get('fecha_nacimiento') as FormControl; }
-  get sexoCtrl()             { return this.formMascota.get('sexo')             as FormControl; }
-  get propietarioCtrl()      { return this.formMascota.get('propietario')      as FormControl; }
-  get pesoCtrl()             { return this.formSalud.get('peso')               as FormControl; }
-  get tallaCtrl()            { return this.formSalud.get('talla')              as FormControl; }
-  get enfermedadesCtrl()     { return this.formSalud.get('enfermedades')       as FormControl; }
-  get tipoVacunaCtrl()       { return this.formVacuna.get('tipo_vacuna')       as FormControl; }
-  get fechaAplicacionCtrl()  { return this.formVacuna.get('fecha_aplicacion')  as FormControl; }
-  get proximaDosisCtrl()     { return this.formVacuna.get('proxima_dosis')     as FormControl; }
-  get observacionesCtrl()    { return this.formVacuna.get('observaciones')     as FormControl; }
-  get pesoVacunaCtrl()       { return this.formVacuna.get('peso')              as FormControl; }
+  get nombreCtrl()                { return this.formMascota.get('nombre')                as FormControl; }
+  get especieCtrl()               { return this.formMascota.get('especie')               as FormControl; }
+  get razaCtrl()                  { return this.formMascota.get('raza')                  as FormControl; }
+  get fechaNacimientoCtrl()       { return this.formMascota.get('fecha_nacimiento')       as FormControl; }
+  get sexoCtrl()                  { return this.formMascota.get('sexo')                  as FormControl; }
+  get propietarioCtrl()           { return this.formMascota.get('propietario')            as FormControl; }
+  get pesoCtrl()                  { return this.formSalud.get('peso')                    as FormControl; }
+  get tallaCtrl()                 { return this.formSalud.get('talla')                   as FormControl; }
+  get enfermedadesCtrl()          { return this.formSalud.get('enfermedades')             as FormControl; }
+  get tipoVacunaCtrl()            { return this.formVacuna.get('tipo_vacuna')             as FormControl; }
+  get fechaAplicacionVacCtrl()    { return this.formVacuna.get('fecha_aplicacion')        as FormControl; }
+  get proximaDosisVacCtrl()       { return this.formVacuna.get('proxima_dosis')           as FormControl; }
+  get observacionesVacCtrl()      { return this.formVacuna.get('observaciones')           as FormControl; }
+  get pesoVacunaCtrl()            { return this.formVacuna.get('peso')                   as FormControl; }
+  get nombreDesparasitanteCtrl()  { return this.formDespara.get('nombre_desparasitante')  as FormControl; }
+  get fechaAplicacionDesCtrl()    { return this.formDespara.get('fecha_aplicacion')       as FormControl; }
+  get proximaDosisDesCtrl()       { return this.formDespara.get('proxima_dosis')          as FormControl; }
+  get observacionesDesCtrl()      { return this.formDespara.get('observaciones')          as FormControl; }
+  get pesoDesparaCtrl()           { return this.formDespara.get('peso')                  as FormControl; }
+  get tipoComidaCtrl()            { return this.formComida.get('tipo_comida')             as FormControl; }
+  get cantidadCtrl()              { return this.formComida.get('cantidad')                as FormControl; }
+  get horaCtrl()                  { return this.formComida.get('hora')                   as FormControl; }
+  get observacionesComidaCtrl()   { return this.formComida.get('observaciones')           as FormControl; }
+  get tipoExcrecionCtrl()         { return this.formExcrecion.get('tipo')          as FormControl; }
+  get cantidadExcrecionCtrl()     { return this.formExcrecion.get('cantidad')       as FormControl; }
+  get consistenciaCtrl()          { return this.formExcrecion.get('consistencia')   as FormControl; }
+  get colorCtrl()                 { return this.formExcrecion.get('color')          as FormControl; }
+  get horaExcrecionCtrl()         { return this.formExcrecion.get('hora')           as FormControl; }
+  get observacionesExcCtrl()      { return this.formExcrecion.get('observaciones')  as FormControl; }
 
-  // ─── CONVERSIÓN DE FECHAS ─────────────────────────────────────────────────
-  // Cualquier formato → yyyy-MM-dd (para input type="date")
+  // ─── FECHAS ───────────────────────────────────────────────────────────────
   private aFormatoInput(fecha: any): string {
     if (!fecha) return '';
-
-    // Si es objeto Date de JavaScript
     if (fecha instanceof Date) {
-      const y = fecha.getUTCFullYear();
-      const m = String(fecha.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(fecha.getUTCDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${String(fecha.getUTCDate()).padStart(2,'0')}`;
     }
-
     const str = String(fecha).trim();
-    console.log('[aFormatoInput] recibido:', str);
-
-    // ISO con zona horaria: "2022-11-12T04:00:00.000Z"
-    if (str.includes('T')) {
-      return str.split('T')[0];
-    }
-
-    // Ya está en yyyy-MM-dd
+    if (str.includes('T')) return str.split('T')[0];
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-
-    // dd-mm-yyyy
-    if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
-      const [d, m, y] = str.split('-');
-      return `${y}-${m}-${d}`;
-    }
-
-    // dd/mm/yyyy
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-      const [d, m, y] = str.split('/');
-      return `${y}-${m}-${d}`;
-    }
-
-    // Número serial de Excel/Sheets (ej: 44927)
+    if (/^\d{2}-\d{2}-\d{4}$/.test(str)) { const [d,m,y]=str.split('-'); return `${y}-${m}-${d}`; }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) { const [d,m,y]=str.split('/'); return `${y}-${m}-${d}`; }
     if (/^\d{4,6}$/.test(str)) {
-      const serial = parseInt(str);
-      const d = new Date((serial - 25569) * 86400 * 1000);
-      const y = d.getUTCFullYear();
-      const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const da = String(d.getUTCDate()).padStart(2, '0');
-      return `${y}-${mo}-${da}`;
+      const d = new Date((parseInt(str)-25569)*86400*1000);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
     }
-
-    console.warn('[aFormatoInput] formato no reconocido:', str);
-    return '';
+    return str;
   }
 
-  // yyyy-MM-dd → yyyy-MM-dd (guardamos en ISO para que codigo.gs lo trate como texto)
   private aFormatoSheet(fecha: string): string {
     if (!fecha) return '';
     const str = String(fecha).trim();
     if (str.includes('T')) return str.split('T')[0];
-    // dd-mm-yyyy → yyyy-MM-dd
-    if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
-      const [d, m, y] = str.split('-');
-      return `${y}-${m}-${d}`;
-    }
-    // ya está en yyyy-MM-dd
+    if (/^\d{2}-\d{2}-\d{4}$/.test(str)) { const [d,m,y]=str.split('-'); return `${y}-${m}-${d}`; }
     return str;
   }
 
-  // Fecha legible para mostrar en tarjetas: yyyy-MM-dd → dd/mm/yyyy
-  formatearFecha(fecha: any): string {
-    const iso = this.aFormatoInput(fecha);
-    if (!iso) return '';
-    const [y, m, d] = iso.split('-');
-    return `${d}/${m}/${y}`;
-  }
-
-  // Calcular edad desde cualquier formato
   calcularEdad(fecha: any): string {
-    if (!fecha) return '';
     const iso = this.aFormatoInput(fecha);
     if (!iso) return '';
     const hoy = new Date();
     const nac = new Date(iso + 'T12:00:00');
     if (isNaN(nac.getTime())) return '';
-    const años  = hoy.getFullYear() - nac.getFullYear();
+    const años = hoy.getFullYear() - nac.getFullYear();
     const meses = hoy.getMonth() - nac.getMonth();
     if (años === 0) return `${meses < 0 ? 0 : meses} meses`;
     return `${años} año${años !== 1 ? 's' : ''}`;
+  }
+
+  formatearFecha(fecha: any): string {
+    const iso = this.aFormatoInput(fecha);
+    if (!iso) return '';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
   }
 
   // ─── CARGAR DATOS ─────────────────────────────────────────────────────────
@@ -208,160 +239,155 @@ export class HomePage implements OnInit {
         this.mascotas = datos;
         this.cargarSalud();
         this.cargarVacunas();
+        this.cargarDesparas();
+        this.cargarComidas();
+        this.cargarExcreciones();
       },
-      error: () => {
-        this.mostrarToast('❌ Error al cargar mascotas', 'danger');
-        this.cargandoDatos = false;
-      }
+      error: () => { this.mostrarToast('❌ Error al cargar mascotas', 'danger'); this.cargandoDatos = false; }
     });
   }
 
-  cargarSalud() {
-    this.sheetsService.obtenerSalud().subscribe({
-      next: (datos) => { this.registrosSalud = datos; },
+  cargarSalud()    { this.sheetsService.obtenerSalud().subscribe({ next: d => this.registrosSalud = d, error: () => {} }); }
+  cargarVacunas()  { this.sheetsService.obtenerVacunas().subscribe({ next: d => this.todasVacunas = d, error: () => {} }); }
+  cargarDesparas() { this.sheetsService.obtenerDesparasitaciones().subscribe({ next: d => this.todasDesparas = d, error: () => {} }); }
+  cargarComidas()  {
+    this.sheetsService.obtenerComidas().subscribe({
+      next: d => { this.todasComidas = d; this.cargandoDatos = false; },
+      error: () => { this.cargandoDatos = false; }
+    });
+  }
+  cargarExcreciones() {
+    this.sheetsService.obtenerExcreciones().subscribe({
+      next: d => { this.todasExcreciones = d; },
       error: () => {}
     });
   }
 
-  cargarVacunas() {
-    this.sheetsService.obtenerVacunas().subscribe({
-      next: (datos) => {
-        this.todasVacunas = datos;
-        this.cargandoDatos = false;
-      },
-      error: () => { this.cargandoDatos = false; }
-    });
-  }
-
   // ─── HELPERS ──────────────────────────────────────────────────────────────
-  getSaludDeMascota(idMascota: string): Salud | null {
-    return this.registrosSalud.find(s => String(s.id_persona) === String(idMascota)) || null;
+  getSaludDeMascota(id: string): Salud | null {
+    return this.registrosSalud.find(s => String(s.id_persona) === String(id)) || null;
+  }
+  getVacunasDeMascota(id: string): Vacuna[] {
+    return this.todasVacunas.filter(v => String(v.id_persona) === String(id));
+  }
+  getDesparasDeMascota(id: string): Desparasitacion[] {
+    return this.todasDesparas.filter(d => String(d.id_persona) === String(id));
+  }
+  getExcrecionesDeMascota(id: string): Excrecion[] {
+    return this.todasExcreciones.filter(e => String(e.id_persona) === String(id));
+  }
+  getExcrecionesHoy(id: string): Excrecion[] {
+    return this.getExcrecionesDeMascota(id).filter(e => e.fechaRegistro === this.fechaHoy);
+  }
+  getExcrecionesAgrupadas(id: string): { fecha: string; excreciones: Excrecion[] }[] {
+    const mapa = new Map<string, Excrecion[]>();
+    this.getExcrecionesDeMascota(id).forEach(e => {
+      const f = e.fechaRegistro || 'Sin fecha';
+      if (!mapa.has(f)) mapa.set(f, []);
+      mapa.get(f)!.push(e);
+    });
+    return Array.from(mapa.entries())
+      .map(([fecha, excreciones]) => ({ fecha, excreciones }))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }
+  getComidasDeMascota(id: string): Comida[] {
+    return this.todasComidas.filter(c => String(c.id_persona) === String(id));
+  }
+  getComidasHoy(id: string): Comida[] {
+    return this.getComidasDeMascota(id).filter(c => c.fechaRegistro === this.fechaHoy);
+  }
+  getTotalGrHoy(id: string): number {
+    return this.getComidasHoy(id).reduce((sum, c) => sum + Number(c.cantidad || 0), 0);
+  }
+  // Agrupa comidas por fecha para el historial
+  getComidasAgrupadas(id: string): { fecha: string; comidas: Comida[]; total: number }[] {
+    const mapa = new Map<string, Comida[]>();
+    this.getComidasDeMascota(id).forEach(c => {
+      const f = c.fechaRegistro || 'Sin fecha';
+      if (!mapa.has(f)) mapa.set(f, []);
+      mapa.get(f)!.push(c);
+    });
+    return Array.from(mapa.entries())
+      .map(([fecha, comidas]) => ({
+        fecha,
+        comidas,
+        total: comidas.reduce((s, c) => s + Number(c.cantidad || 0), 0)
+      }))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha)); // más reciente primero
   }
 
-  getVacunasDeMascota(idMascota: string): Vacuna[] {
-    return this.todasVacunas.filter(v => String(v.id_persona) === String(idMascota));
+  trackById(index: number, item: any) {
+    return item.id || item.id_vacuna || item.id_desparasitacion || item.id_comida;
   }
 
-  trackById(index: number, item: any) { return item.id || item.id_vacuna; }
-
-  esInvalidoMascota(campo: string): boolean {
-    const ctrl = this.formMascota.get(campo);
-    return !!(ctrl?.invalid && ctrl?.touched);
-  }
-
-  esInvalidoSalud(campo: string): boolean {
-    const ctrl = this.formSalud.get(campo);
-    return !!(ctrl?.invalid && ctrl?.touched);
-  }
-
-  esInvalidoVacuna(campo: string): boolean {
-    const ctrl = this.formVacuna.get(campo);
-    return !!(ctrl?.invalid && ctrl?.touched);
-  }
+  esInvalidoMascota(c: string) { const ctrl = this.formMascota.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoSalud(c: string)   { const ctrl = this.formSalud.get(c);   return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoVacuna(c: string)  { const ctrl = this.formVacuna.get(c);  return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoDespara(c: string) { const ctrl = this.formDespara.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoComida(c: string)  { const ctrl = this.formComida.get(c);  return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoExcrecion(c: string){ const ctrl = this.formExcrecion.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
 
   async mostrarToast(mensaje: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message: mensaje, duration: 2500, color, position: 'top'
-    });
+    const toast = await this.toastCtrl.create({ message: mensaje, duration: 2500, color, position: 'top' });
     toast.present();
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // MASCOTA
   // ══════════════════════════════════════════════════════════════════════════
-
-  abrirModalNuevaMascota() {
-    this.editandoMascotaId = null;
-    this.mascotaEditando = null;
-    this.formMascota.reset();
-    this.modalMascota?.present();
-  }
+  abrirModalNuevaMascota() { this.editandoMascotaId = null; this.mascotaEditando = null; this.formMascota.reset(); this.modalMascota?.present(); }
 
   editarMascota(mascota: Mascota) {
-    this.editandoMascotaId = mascota.id;
-    this.mascotaEditando = mascota;
-    const fechaConvertida = this.aFormatoInput(mascota.fecha_nacimiento);
-    console.log('[editarMascota] fecha RAW:', mascota.fecha_nacimiento, '→ convertida:', fechaConvertida);
-    this.formMascota.patchValue({
-      nombre:           mascota.nombre,
-      especie:          mascota.especie,
-      raza:             mascota.raza,
-      fecha_nacimiento: fechaConvertida,
-      sexo:             mascota.sexo,
-      propietario:      mascota.propietario
-    });
+    this.editandoMascotaId = mascota.id; this.mascotaEditando = mascota;
+    this.formMascota.patchValue({ nombre: mascota.nombre, especie: mascota.especie, raza: mascota.raza,
+      fecha_nacimiento: this.aFormatoInput(mascota.fecha_nacimiento), sexo: mascota.sexo, propietario: mascota.propietario });
     this.modalMascota?.present();
   }
 
-  cancelarMascota() {
-    this.editandoMascotaId = null;
-    this.mascotaEditando = null;
-    this.formMascota.reset();
-    this.modalMascota?.dismiss();
-  }
+  cancelarMascota() { this.editandoMascotaId = null; this.mascotaEditando = null; this.formMascota.reset(); this.modalMascota?.dismiss(); }
 
   async guardarMascota() {
     if (this.formMascota.invalid) { this.formMascota.markAllAsTouched(); return; }
-
     const esEdicion = !!this.editandoMascotaId;
-    const loading = await this.loadingCtrl.create({
-      message: esEdicion ? 'Actualizando...' : 'Guardando...'
-    });
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
     await loading.present();
-
     const v = this.formMascota.value;
-    const mascota: Mascota = {
-      id:               this.editandoMascotaId || Date.now().toString(),
-      nombre:           v.nombre,
-      especie:          v.especie,
-      raza:             v.raza,
-      fecha_nacimiento: this.aFormatoSheet(v.fecha_nacimiento),
-      sexo:             v.sexo,
-      propietario:      v.propietario,
-      fechaRegistro:    this.mascotaEditando?.fechaRegistro || new Date().toLocaleDateString('es-ES')
-    };
-
+    const mascota: Mascota = { id: this.editandoMascotaId || Date.now().toString(), nombre: v.nombre,
+      especie: v.especie, raza: v.raza, fecha_nacimiento: this.aFormatoSheet(v.fecha_nacimiento),
+      sexo: v.sexo, propietario: v.propietario,
+      fechaRegistro: this.mascotaEditando?.fechaRegistro || new Date().toLocaleDateString('es-ES') };
     try {
       await this.sheetsService.guardarMascota(mascota, esEdicion ? 'UPDATE' : 'CREATE');
-      await loading.dismiss();
-      this.cancelarMascota();
-      this.mostrarToast(esEdicion ? '✏️ Mascota actualizada' : '🐾 Mascota registrada', 'success');
+      await loading.dismiss(); this.cancelarMascota();
+      this.mostrarToast(esEdicion ? '✏️ Actualizada' : '🐾 Mascota registrada', 'success');
       setTimeout(() => this.cargarDatos(), 1500);
-    } catch {
-      await loading.dismiss();
-      this.mostrarToast('❌ Error al guardar mascota', 'danger');
-    }
+    } catch { await loading.dismiss(); this.mostrarToast('❌ Error al guardar', 'danger'); }
   }
 
   async eliminarMascota(mascota: Mascota) {
     const alert = await this.alertCtrl.create({
       header: 'Eliminar mascota',
-      message: `¿Eliminar a ${mascota.nombre}? También se eliminarán sus datos de salud y vacunas.`,
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Eliminar', role: 'destructive',
-          handler: async () => {
-            const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
-            await loading.present();
-            try {
-              const salud = this.getSaludDeMascota(mascota.id);
-              if (salud) await this.sheetsService.eliminarSalud(salud.id_salud);
-              const vacunas = this.getVacunasDeMascota(mascota.id);
-              for (const vac of vacunas) await this.sheetsService.eliminarVacuna(vac.id_vacuna);
-              await this.sheetsService.eliminarMascota(mascota.id);
-              this.mascotas       = this.mascotas.filter(m => m.id !== mascota.id);
-              this.registrosSalud = this.registrosSalud.filter(s => String(s.id_persona) !== String(mascota.id));
-              this.todasVacunas   = this.todasVacunas.filter(v => String(v.id_persona) !== String(mascota.id));
-              await loading.dismiss();
-              this.mostrarToast('🗑️ Mascota eliminada', 'success');
-            } catch {
-              await loading.dismiss();
-              this.mostrarToast('❌ Error al eliminar', 'danger');
-            }
-          }
-        }
-      ]
+      message: `¿Eliminar a ${mascota.nombre}? Se eliminarán todos sus registros.`,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Eliminar', role: 'destructive', handler: async () => {
+        const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
+        await loading.present();
+        try {
+          const salud = this.getSaludDeMascota(mascota.id);
+          if (salud) await this.sheetsService.eliminarSalud(salud.id_salud);
+          for (const v of this.getVacunasDeMascota(mascota.id)) await this.sheetsService.eliminarVacuna(v.id_vacuna);
+          for (const d of this.getDesparasDeMascota(mascota.id)) await this.sheetsService.eliminarDesparasitacion(d.id_desparasitacion);
+          for (const c of this.getComidasDeMascota(mascota.id)) await this.sheetsService.eliminarComida(c.id_comida);
+              for (const e of this.getExcrecionesDeMascota(mascota.id)) await this.sheetsService.eliminarExcrecion(e.id_excrecion);
+          await this.sheetsService.eliminarMascota(mascota.id);
+          this.mascotas      = this.mascotas.filter(m => m.id !== mascota.id);
+          this.registrosSalud = this.registrosSalud.filter(s => String(s.id_persona) !== String(mascota.id));
+          this.todasVacunas  = this.todasVacunas.filter(v => String(v.id_persona) !== String(mascota.id));
+          this.todasDesparas = this.todasDesparas.filter(d => String(d.id_persona) !== String(mascota.id));
+          this.todasComidas  = this.todasComidas.filter(c => String(c.id_persona) !== String(mascota.id));
+              this.todasExcreciones = this.todasExcreciones.filter(e => String(e.id_persona) !== String(mascota.id));
+          await loading.dismiss(); this.mostrarToast('🗑️ Eliminada', 'success');
+        } catch { await loading.dismiss(); this.mostrarToast('❌ Error al eliminar', 'danger'); }
+      }}]
     });
     await alert.present();
   }
@@ -369,134 +395,275 @@ export class HomePage implements OnInit {
   // ══════════════════════════════════════════════════════════════════════════
   // SALUD
   // ══════════════════════════════════════════════════════════════════════════
-
   abrirModalSalud(mascota: Mascota) {
     this.mascotaSeleccionadaParaSalud = mascota;
-    const saludExistente = this.getSaludDeMascota(mascota.id);
-    if (saludExistente) {
-      this.editandoSaludId = saludExistente.id_salud;
-      this.formSalud.patchValue({
-        peso: saludExistente.peso, talla: saludExistente.talla,
-        enfermedades: saludExistente.enfermedades
-      });
-    } else {
-      this.editandoSaludId = null;
-      this.formSalud.reset();
-    }
+    const s = this.getSaludDeMascota(mascota.id);
+    if (s) { this.editandoSaludId = s.id_salud; this.formSalud.patchValue({ peso: s.peso, talla: s.talla, enfermedades: s.enfermedades }); }
+    else   { this.editandoSaludId = null; this.formSalud.reset(); }
     this.modalSalud?.present();
   }
-
-  cancelarSalud() {
-    this.editandoSaludId = null;
-    this.mascotaSeleccionadaParaSalud = null;
-    this.formSalud.reset();
-    this.modalSalud?.dismiss();
-  }
-
+  cancelarSalud() { this.editandoSaludId = null; this.mascotaSeleccionadaParaSalud = null; this.formSalud.reset(); this.modalSalud?.dismiss(); }
   async guardarSalud() {
     if (this.formSalud.invalid) { this.formSalud.markAllAsTouched(); return; }
     if (!this.mascotaSeleccionadaParaSalud) return;
-
     const esEdicion = !!this.editandoSaludId;
-    const loading = await this.loadingCtrl.create({
-      message: esEdicion ? 'Actualizando salud...' : 'Guardando salud...'
-    });
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
     await loading.present();
-
-    const salud: Salud = {
-      id_salud:      this.editandoSaludId || Date.now().toString(),
-      id_persona:    this.mascotaSeleccionadaParaSalud.id,
-      ...this.formSalud.value,
-      fechaRegistro: new Date().toLocaleDateString('es-ES')
-    };
-
+    const salud: Salud = { id_salud: this.editandoSaludId || Date.now().toString(),
+      id_persona: this.mascotaSeleccionadaParaSalud.id, ...this.formSalud.value,
+      fechaRegistro: new Date().toLocaleDateString('es-ES') };
     try {
       await this.sheetsService.guardarSalud(salud, esEdicion ? 'UPDATE' : 'CREATE');
-      await loading.dismiss();
-      this.cancelarSalud();
-      this.mostrarToast(esEdicion ? '✏️ Salud actualizada' : '💊 Datos de salud guardados', 'success');
+      await loading.dismiss(); this.cancelarSalud();
+      this.mostrarToast(esEdicion ? '✏️ Actualizada' : '💊 Salud guardada', 'success');
       setTimeout(() => this.cargarDatos(), 1500);
-    } catch {
-      await loading.dismiss();
-      this.mostrarToast('❌ Error al guardar salud', 'danger');
-    }
+    } catch { await loading.dismiss(); this.mostrarToast('❌ Error al guardar', 'danger'); }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // VACUNAS
   // ══════════════════════════════════════════════════════════════════════════
-
-  abrirModalVacunas(mascota: Mascota) {
-    this.mascotaSeleccionadaParaVacunas = mascota;
-    this.modalVacunas?.present();
-  }
-
-  cerrarModalVacunas() {
-    this.mascotaSeleccionadaParaVacunas = null;
-    this.modalVacunas?.dismiss();
-  }
-
+  abrirModalVacunas(mascota: Mascota) { this.mascotaSeleccionadaParaVacunas = mascota; this.modalVacunas?.present(); }
+  cerrarModalVacunas() { this.mascotaSeleccionadaParaVacunas = null; this.modalVacunas?.dismiss(); }
   abrirFormularioVacuna(vacuna?: Vacuna) {
-    if (vacuna) {
-      this.editandoVacunaId = vacuna.id_vacuna;
-      this.formVacuna.patchValue({
-        tipo_vacuna:      vacuna.tipo_vacuna,
-        fecha_aplicacion: this.aFormatoInput(vacuna.fecha_aplicacion),
-        proxima_dosis:    this.aFormatoInput(vacuna.proxima_dosis),
-        observaciones:    vacuna.observaciones,
-        peso:             vacuna.peso
-      });
-    } else {
-      this.editandoVacunaId = null;
-      this.formVacuna.reset();
-    }
+    if (vacuna) { this.editandoVacunaId = vacuna.id_vacuna; this.formVacuna.patchValue({
+      tipo_vacuna: vacuna.tipo_vacuna, fecha_aplicacion: this.aFormatoInput(vacuna.fecha_aplicacion),
+      proxima_dosis: this.aFormatoInput(vacuna.proxima_dosis), observaciones: vacuna.observaciones, peso: vacuna.peso });
+    } else { this.editandoVacunaId = null; this.formVacuna.reset(); }
     this.modalVacuna?.present();
   }
-
-  cancelarVacuna() {
-    this.editandoVacunaId = null;
-    this.formVacuna.reset();
-    this.modalVacuna?.dismiss();
-  }
-
+  cancelarVacuna() { this.editandoVacunaId = null; this.formVacuna.reset(); this.modalVacuna?.dismiss(); }
   async guardarVacuna() {
     if (this.formVacuna.invalid) { this.formVacuna.markAllAsTouched(); return; }
     if (!this.mascotaSeleccionadaParaVacunas) return;
-
     const esEdicion = !!this.editandoVacunaId;
-    const loading = await this.loadingCtrl.create({
-      message: esEdicion ? 'Actualizando vacuna...' : 'Guardando vacuna...'
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
+    await loading.present();
+    const val = this.formVacuna.value;
+    const vacuna: Vacuna = { id_vacuna: this.editandoVacunaId || Date.now().toString(),
+      id_persona: this.mascotaSeleccionadaParaVacunas.id, tipo_vacuna: val.tipo_vacuna,
+      fecha_aplicacion: this.aFormatoSheet(val.fecha_aplicacion), proxima_dosis: this.aFormatoSheet(val.proxima_dosis),
+      observaciones: val.observaciones, peso: val.peso, fechaRegistro: new Date().toLocaleDateString('es-ES') };
+    try {
+      await this.sheetsService.guardarVacuna(vacuna, esEdicion ? 'UPDATE' : 'CREATE');
+      await loading.dismiss(); this.cancelarVacuna();
+      this.mostrarToast(esEdicion ? '✏️ Actualizada' : '💉 Vacuna registrada', 'success');
+      setTimeout(() => this.cargarVacunas(), 1500);
+    } catch { await loading.dismiss(); this.mostrarToast('❌ Error al guardar', 'danger'); }
+  }
+  async eliminarVacuna(vacuna: Vacuna) {
+    const alert = await this.alertCtrl.create({ header: 'Eliminar vacuna',
+      message: `¿Eliminar vacuna del ${this.formatearFecha(vacuna.fecha_aplicacion)}?`,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Eliminar', role: 'destructive', handler: async () => {
+        const loading = await this.loadingCtrl.create({ message: 'Eliminando...' }); await loading.present();
+        try { await this.sheetsService.eliminarVacuna(vacuna.id_vacuna);
+          this.todasVacunas = this.todasVacunas.filter(v => v.id_vacuna !== vacuna.id_vacuna);
+          await loading.dismiss(); this.mostrarToast('🗑️ Eliminada', 'success');
+        } catch { await loading.dismiss(); this.mostrarToast('❌ Error', 'danger'); }
+      }}]
     });
+    await alert.present();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DESPARASITACIONES
+  // ══════════════════════════════════════════════════════════════════════════
+  abrirModalDesparas(mascota: Mascota) { this.mascotaSeleccionadaParaDesparas = mascota; this.modalDesparas?.present(); }
+  cerrarModalDesparas() { this.mascotaSeleccionadaParaDesparas = null; this.modalDesparas?.dismiss(); }
+  abrirFormularioDespara(d?: Desparasitacion) {
+    if (d) { this.editandoDesparaId = d.id_desparasitacion; this.formDespara.patchValue({
+      nombre_desparasitante: d.nombre_desparasitante, fecha_aplicacion: this.aFormatoInput(d.fecha_aplicacion),
+      proxima_dosis: this.aFormatoInput(d.proxima_dosis), observaciones: d.observaciones, peso: d.peso });
+    } else { this.editandoDesparaId = null; this.formDespara.reset(); }
+    this.modalDespara?.present();
+  }
+  cancelarDespara() { this.editandoDesparaId = null; this.formDespara.reset(); this.modalDespara?.dismiss(); }
+  async guardarDespara() {
+    if (this.formDespara.invalid) { this.formDespara.markAllAsTouched(); return; }
+    if (!this.mascotaSeleccionadaParaDesparas) return;
+    const esEdicion = !!this.editandoDesparaId;
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
+    await loading.present();
+    const val = this.formDespara.value;
+    const despara: Desparasitacion = { id_desparasitacion: this.editandoDesparaId || Date.now().toString(),
+      id_persona: this.mascotaSeleccionadaParaDesparas.id, nombre_desparasitante: val.nombre_desparasitante,
+      fecha_aplicacion: this.aFormatoSheet(val.fecha_aplicacion), proxima_dosis: this.aFormatoSheet(val.proxima_dosis),
+      observaciones: val.observaciones, peso: val.peso, fechaRegistro: new Date().toLocaleDateString('es-ES') };
+    try {
+      await this.sheetsService.guardarDesparasitacion(despara, esEdicion ? 'UPDATE' : 'CREATE');
+      await loading.dismiss(); this.cancelarDespara();
+      this.mostrarToast(esEdicion ? '✏️ Actualizada' : '💊 Desparasitación registrada', 'success');
+      setTimeout(() => this.cargarDesparas(), 1500);
+    } catch { await loading.dismiss(); this.mostrarToast('❌ Error al guardar', 'danger'); }
+  }
+  async eliminarDespara(d: Desparasitacion) {
+    const alert = await this.alertCtrl.create({ header: 'Eliminar desparasitación',
+      message: `¿Eliminar desparasitación del ${this.formatearFecha(d.fecha_aplicacion)}?`,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Eliminar', role: 'destructive', handler: async () => {
+        const loading = await this.loadingCtrl.create({ message: 'Eliminando...' }); await loading.present();
+        try { await this.sheetsService.eliminarDesparasitacion(d.id_desparasitacion);
+          this.todasDesparas = this.todasDesparas.filter(x => x.id_desparasitacion !== d.id_desparasitacion);
+          await loading.dismiss(); this.mostrarToast('🗑️ Eliminada', 'success');
+        } catch { await loading.dismiss(); this.mostrarToast('❌ Error', 'danger'); }
+      }}]
+    });
+    await alert.present();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // COMIDAS
+  // ══════════════════════════════════════════════════════════════════════════
+  abrirModalComidas(mascota: Mascota) {
+    this.mascotaSeleccionadaParaComidas = mascota;
+    this.vistaComidas = 'hoy';
+    this.modalComidas?.present();
+  }
+  cerrarModalComidas() { this.mascotaSeleccionadaParaComidas = null; this.modalComidas?.dismiss(); }
+
+  abrirFormularioComida(comida?: Comida) {
+    if (comida) {
+      this.editandoComidaId = comida.id_comida;
+      this.formComida.patchValue({ tipo_comida: comida.tipo_comida, cantidad: comida.cantidad,
+        hora: comida.hora, observaciones: comida.observaciones });
+    } else {
+      this.editandoComidaId = null;
+      this.formComida.reset();
+      // Pre-llenar hora actual
+      const ahora = new Date();
+      const hh = String(ahora.getHours()).padStart(2, '0');
+      const mm = String(ahora.getMinutes()).padStart(2, '0');
+      this.formComida.patchValue({ hora: `${hh}:${mm}` });
+    }
+    this.modalComida?.present();
+  }
+  cancelarComida() { this.editandoComidaId = null; this.formComida.reset(); this.modalComida?.dismiss(); }
+
+  async guardarComida() {
+    if (this.formComida.invalid) { this.formComida.markAllAsTouched(); return; }
+    if (!this.mascotaSeleccionadaParaComidas) return;
+    const esEdicion = !!this.editandoComidaId;
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
+    await loading.present();
+    const val = this.formComida.value;
+    const comida: Comida = {
+      id_comida:     this.editandoComidaId || Date.now().toString(),
+      id_persona:    this.mascotaSeleccionadaParaComidas.id,
+      tipo_comida:   val.tipo_comida,
+      cantidad:      Number(val.cantidad),
+      hora:          val.hora,
+      observaciones: val.observaciones || '',
+      fechaRegistro: this.fechaHoy
+    };
+    try {
+      await this.sheetsService.guardarComida(comida, esEdicion ? 'UPDATE' : 'CREATE');
+      // Actualizar lista local inmediatamente
+      if (esEdicion) {
+        this.todasComidas = this.todasComidas.map(c => c.id_comida === comida.id_comida ? comida : c);
+      } else {
+        this.todasComidas = [...this.todasComidas, comida];
+      }
+      await loading.dismiss(); this.cancelarComida();
+      this.mostrarToast(esEdicion ? '✏️ Actualizada' : `🍽️ +${comida.cantidad}g registrados`, 'success');
+    } catch { await loading.dismiss(); this.mostrarToast('❌ Error al guardar', 'danger'); }
+  }
+
+  async eliminarComida(comida: Comida) {
+    const alert = await this.alertCtrl.create({ header: 'Eliminar comida',
+      message: `¿Eliminar ${comida.tipo_comida} (${comida.cantidad}g)?`,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Eliminar', role: 'destructive', handler: async () => {
+        const loading = await this.loadingCtrl.create({ message: 'Eliminando...' }); await loading.present();
+        try { await this.sheetsService.eliminarComida(comida.id_comida);
+          this.todasComidas = this.todasComidas.filter(c => c.id_comida !== comida.id_comida);
+          await loading.dismiss(); this.mostrarToast('🗑️ Eliminada', 'success');
+        } catch { await loading.dismiss(); this.mostrarToast('❌ Error', 'danger'); }
+      }}]
+    });
+    await alert.present();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // EXCRECIONES
+  // ══════════════════════════════════════════════════════════════════════════
+  abrirModalExcreciones(mascota: Mascota) {
+    this.mascotaSeleccionadaParaExcreciones = mascota;
+    this.vistaComidas = 'hoy';
+    this.modalExcreciones?.present();
+  }
+
+  cerrarModalExcreciones() {
+    this.mascotaSeleccionadaParaExcreciones = null;
+    this.modalExcreciones?.dismiss();
+  }
+
+  abrirFormularioExcrecion(excrecion?: Excrecion) {
+    if (excrecion) {
+      this.editandoExcrecionId = excrecion.id_excrecion;
+      this.formExcrecion.patchValue({
+        tipo:          excrecion.tipo,
+        cantidad:      excrecion.cantidad,
+        consistencia:  excrecion.consistencia,
+        color:         excrecion.color,
+        hora:          excrecion.hora,
+        observaciones: excrecion.observaciones
+      });
+    } else {
+      this.editandoExcrecionId = null;
+      this.formExcrecion.reset();
+      const ahora = new Date();
+      const hh = String(ahora.getHours()).padStart(2, '0');
+      const mm = String(ahora.getMinutes()).padStart(2, '0');
+      this.formExcrecion.patchValue({ hora: `${hh}:${mm}` });
+    }
+    this.modalExcrecion?.present();
+  }
+
+  cancelarExcrecion() {
+    this.editandoExcrecionId = null;
+    this.formExcrecion.reset();
+    this.modalExcrecion?.dismiss();
+  }
+
+  async guardarExcrecion() {
+    if (this.formExcrecion.invalid) { this.formExcrecion.markAllAsTouched(); return; }
+    if (!this.mascotaSeleccionadaParaExcreciones) return;
+
+    const esEdicion = !!this.editandoExcrecionId;
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
     await loading.present();
 
-    const val = this.formVacuna.value;
-    const vacuna: Vacuna = {
-      id_vacuna:        this.editandoVacunaId || Date.now().toString(),
-      id_persona:       this.mascotaSeleccionadaParaVacunas.id,
-      tipo_vacuna:      val.tipo_vacuna,
-      fecha_aplicacion: this.aFormatoSheet(val.fecha_aplicacion),
-      proxima_dosis:    this.aFormatoSheet(val.proxima_dosis),
-      observaciones:    val.observaciones,
-      peso:             val.peso,
-      fechaRegistro:    new Date().toLocaleDateString('es-ES')
+    const val = this.formExcrecion.value;
+    const excrecion: Excrecion = {
+      id_excrecion:  this.editandoExcrecionId || Date.now().toString(),
+      id_persona:    this.mascotaSeleccionadaParaExcreciones.id,
+      tipo:          val.tipo,
+      cantidad:      val.cantidad,
+      consistencia:  val.consistencia || '',
+      color:         val.color || '',
+      hora:          val.hora,
+      observaciones: val.observaciones || '',
+      fechaRegistro: this.fechaHoy
     };
 
     try {
-      await this.sheetsService.guardarVacuna(vacuna, esEdicion ? 'UPDATE' : 'CREATE');
+      await this.sheetsService.guardarExcrecion(excrecion, esEdicion ? 'UPDATE' : 'CREATE');
+      if (esEdicion) {
+        this.todasExcreciones = this.todasExcreciones.map(e => e.id_excrecion === excrecion.id_excrecion ? excrecion : e);
+      } else {
+        this.todasExcreciones = [...this.todasExcreciones, excrecion];
+      }
       await loading.dismiss();
-      this.cancelarVacuna();
-      this.mostrarToast(esEdicion ? '✏️ Vacuna actualizada' : '💉 Vacuna registrada', 'success');
-      setTimeout(() => this.cargarVacunas(), 1500);
+      this.cancelarExcrecion();
+      this.mostrarToast(esEdicion ? '✏️ Actualizado' : `✅ ${val.tipo} registrado`, 'success');
     } catch {
       await loading.dismiss();
-      this.mostrarToast('❌ Error al guardar vacuna', 'danger');
+      this.mostrarToast('❌ Error al guardar', 'danger');
     }
   }
 
-  async eliminarVacuna(vacuna: Vacuna) {
+  async eliminarExcrecion(excrecion: Excrecion) {
     const alert = await this.alertCtrl.create({
-      header: 'Eliminar vacuna',
-      message: `¿Eliminar el registro de "${vacuna.tipo_vacuna}"?`,
+      header: 'Eliminar registro',
+      message: `¿Eliminar registro de ${excrecion.tipo} (${excrecion.hora})?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
@@ -505,13 +672,13 @@ export class HomePage implements OnInit {
             const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
             await loading.present();
             try {
-              await this.sheetsService.eliminarVacuna(vacuna.id_vacuna);
-              this.todasVacunas = this.todasVacunas.filter(v => v.id_vacuna !== vacuna.id_vacuna);
+              await this.sheetsService.eliminarExcrecion(excrecion.id_excrecion);
+              this.todasExcreciones = this.todasExcreciones.filter(e => e.id_excrecion !== excrecion.id_excrecion);
               await loading.dismiss();
-              this.mostrarToast('🗑️ Vacuna eliminada', 'success');
+              this.mostrarToast('🗑️ Eliminado', 'success');
             } catch {
               await loading.dismiss();
-              this.mostrarToast('❌ Error al eliminar vacuna', 'danger');
+              this.mostrarToast('❌ Error', 'danger');
             }
           }
         }

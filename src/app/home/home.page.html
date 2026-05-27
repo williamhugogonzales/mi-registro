@@ -27,41 +27,64 @@
 
       <ion-card-content>
 
-        <!-- Datos de salud -->
+        <!-- Salud -->
         <div *ngIf="getSaludDeMascota(mascota.id) as salud; else sinSalud">
-          <div style="background:#f0faf4; border-radius:8px; padding:10px; margin-bottom:10px;">
-            <p style="font-weight:600; color:#2e7d32; margin:0 0 6px">
-              <ion-icon name="heart-outline"></ion-icon> Datos de salud
-            </p>
-            <p style="margin:2px 0; font-size:13px">⚖️ Peso: <strong>{{ salud.peso }} kg</strong></p>
-            <p style="margin:2px 0; font-size:13px">📏 Talla: <strong>{{ salud.talla }} cm</strong></p>
-            <p style="margin:2px 0; font-size:13px">🏥 Condiciones: <strong>{{ salud.enfermedades }}</strong></p>
+          <div style="background:#f0faf4; border-radius:8px; padding:10px; margin-bottom:8px;">
+            <p style="font-weight:600; color:#2e7d32; margin:0 0 4px">❤️ Salud</p>
+            <p style="margin:2px 0; font-size:13px">⚖️ <strong>{{ salud.peso }} kg</strong> · 📏 <strong>{{ salud.talla }} cm</strong></p>
+            <p style="margin:2px 0; font-size:13px">🏥 {{ salud.enfermedades }}</p>
           </div>
         </div>
         <ng-template #sinSalud>
-          <div style="background:#fff8e1; border-radius:8px; padding:8px 10px; margin-bottom:10px;">
-            <p style="margin:0; font-size:12px; color:#f57f17">⚠️ Sin datos de salud registrados</p>
+          <div style="background:#fff8e1; border-radius:8px; padding:6px 10px; margin-bottom:8px;">
+            <p style="margin:0; font-size:12px; color:#f57f17">⚠️ Sin datos de salud</p>
           </div>
         </ng-template>
 
-        <!-- Resumen vacunas -->
-        <div style="background:#e8f4fd; border-radius:8px; padding:8px 10px; margin-bottom:10px;">
-          <p style="margin:0; font-size:13px; color:#1565c0">
-            💉 Vacunas registradas: <strong>{{ getVacunasDeMascota(mascota.id).length }}</strong>
-          </p>
+        <!-- Resumen contadores -->
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+          <div style="background:#e8f4fd; border-radius:8px; padding:8px 12px;">
+            <p style="margin:0; font-size:13px; color:#1565c0">
+              💉 Vacunas registradas: <strong>{{ getVacunasDeMascota(mascota.id).length }}</strong>
+            </p>
+          </div>
+          <div style="background:#f3e5f5; border-radius:8px; padding:8px 12px;">
+            <p style="margin:0; font-size:13px; color:#6a1b9a">
+              💊 Desparasitaciones: <strong>{{ getDesparasDeMascota(mascota.id).length }}</strong>
+            </p>
+          </div>
+          <div style="background:#fff3e0; border-radius:8px; padding:8px 12px;">
+            <p style="margin:0; font-size:13px; color:#e65100">
+              🍽️ Comida consumida hoy: <strong>{{ getTotalGrHoy(mascota.id) }} gr</strong>
+            </p>
+          </div>
+          <div style="background:#f5f5f5; border-radius:8px; padding:8px 12px;">
+            <p style="margin:0; font-size:13px; color:#546e7a">
+              🧪 Excreciones hoy: <strong>{{ getExcrecionesHoy(mascota.id).length }}</strong>
+            </p>
+          </div>
         </div>
 
         <!-- Botones -->
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
           <ion-button size="small" fill="outline" color="primary" (click)="editarMascota(mascota)">
             <ion-icon name="create-outline" slot="start"></ion-icon> Editar
           </ion-button>
           <ion-button size="small" fill="outline" color="success" (click)="abrirModalSalud(mascota)">
             <ion-icon name="medkit-outline" slot="start"></ion-icon>
-            {{ getSaludDeMascota(mascota.id) ? 'Ver salud' : 'Agregar salud' }}
+            {{ getSaludDeMascota(mascota.id) ? 'Salud' : 'Salud' }}
           </ion-button>
           <ion-button size="small" fill="outline" color="tertiary" (click)="abrirModalVacunas(mascota)">
             <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon> Vacunas
+          </ion-button>
+          <ion-button size="small" fill="outline" color="secondary" (click)="abrirModalDesparas(mascota)">
+            <ion-icon name="nutrition-outline" slot="start"></ion-icon> Desparas
+          </ion-button>
+          <ion-button size="small" fill="outline" color="warning" (click)="abrirModalComidas(mascota)">
+            <ion-icon name="restaurant-outline" slot="start"></ion-icon> Comidas
+          </ion-button>
+          <ion-button size="small" fill="outline" color="medium" (click)="abrirModalExcreciones(mascota)">
+            <ion-icon name="flask-outline" slot="start"></ion-icon> Excreciones
           </ion-button>
           <ion-button size="small" fill="outline" color="danger" (click)="eliminarMascota(mascota)">
             <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
@@ -77,7 +100,6 @@
     <ion-icon name="paw-outline" style="font-size:64px;"></ion-icon>
     <p>No hay mascotas registradas</p>
   </div>
-
   <div *ngIf="cargandoDatos" style="text-align:center; padding:40px;">
     <p style="color:#aaa">Cargando datos...</p>
   </div>
@@ -90,27 +112,19 @@
 
 </ion-content>
 
-<!-- ══════════════════════════════════════
-     MODAL: Mascota
-════════════════════════════════════════ -->
+<!-- ══ MODAL: Mascota ═══════════════════════════════════════════════════════ -->
 <ion-modal #modalMascota>
   <ng-template>
-    <ion-header>
-      <ion-toolbar color="primary">
-        <ion-title>{{ editandoMascotaId ? 'Editar Mascota' : 'Nueva Mascota' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="cancelarMascota()"><ion-icon name="close-outline"></ion-icon></ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <ion-header><ion-toolbar color="primary">
+      <ion-title>{{ editandoMascotaId ? 'Editar Mascota' : 'Nueva Mascota' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarMascota()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
     <ion-content class="ion-padding">
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('nombre')">
-        <ion-label position="stacked">Nombre de la mascota</ion-label>
+        <ion-label position="stacked">Nombre</ion-label>
         <ion-input [formControl]="nombreCtrl" placeholder="Ej: Max"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('especie')">
         <ion-label position="stacked">Especie</ion-label>
         <ion-select [formControl]="especieCtrl" placeholder="Seleccionar">
@@ -123,19 +137,16 @@
         </ion-select>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('raza')">
         <ion-label position="stacked">Raza</ion-label>
-        <ion-input [formControl]="razaCtrl" placeholder="Ej: Labrador, Mestizo"></ion-input>
+        <ion-input [formControl]="razaCtrl" placeholder="Ej: Mestizo"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('fecha_nacimiento')">
         <ion-label position="stacked">Fecha de nacimiento</ion-label>
         <ion-input type="date" [formControl]="fechaNacimientoCtrl"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('sexo')">
         <ion-label position="stacked">Sexo</ion-label>
         <ion-select [formControl]="sexoCtrl" placeholder="Seleccionar">
@@ -144,125 +155,320 @@
         </ion-select>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoMascota('propietario')">
         <ion-label position="stacked">Propietario</ion-label>
         <ion-input [formControl]="propietarioCtrl" placeholder="Ej: Juan Pérez"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <div class="ion-padding-top">
         <ion-button expand="block" color="primary" (click)="guardarMascota()">
           <ion-icon name="save-outline" slot="start"></ion-icon>
           {{ editandoMascotaId ? 'Actualizar' : 'Guardar' }}
         </ion-button>
       </div>
-
     </ion-content>
   </ng-template>
 </ion-modal>
 
-<!-- ══════════════════════════════════════
-     MODAL: Salud
-════════════════════════════════════════ -->
+<!-- ══ MODAL: Salud ═════════════════════════════════════════════════════════ -->
 <ion-modal #modalSalud>
   <ng-template>
-    <ion-header>
-      <ion-toolbar color="success">
-        <ion-title>💊 Salud — {{ mascotaSeleccionadaParaSalud?.nombre }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="cancelarSalud()"><ion-icon name="close-outline"></ion-icon></ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <ion-header><ion-toolbar color="success">
+      <ion-title>💊 Salud — {{ mascotaSeleccionadaParaSalud?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarSalud()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
     <ion-content class="ion-padding">
-
       <ion-item [class.ion-invalid]="esInvalidoSalud('peso')">
         <ion-label position="stacked">Peso (kg)</ion-label>
         <ion-input type="number" [formControl]="pesoCtrl" placeholder="Ej: 8.5"></ion-input>
-        <ion-note slot="error">Ingresa un peso válido</ion-note>
+        <ion-note slot="error">Peso inválido</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoSalud('talla')">
         <ion-label position="stacked">Talla (cm)</ion-label>
         <ion-input type="number" [formControl]="tallaCtrl" placeholder="Ej: 45"></ion-input>
-        <ion-note slot="error">Ingresa una talla válida</ion-note>
+        <ion-note slot="error">Talla inválida</ion-note>
       </ion-item>
-
       <ion-item [class.ion-invalid]="esInvalidoSalud('enfermedades')">
         <ion-label position="stacked">Condiciones / Enfermedades</ion-label>
-        <ion-input [formControl]="enfermedadesCtrl" placeholder="Ej: Ninguna, Diabetes"></ion-input>
+        <ion-input [formControl]="enfermedadesCtrl" placeholder="Ej: Ninguna"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
-
       <div class="ion-padding-top">
         <ion-button expand="block" color="success" (click)="guardarSalud()">
           <ion-icon name="save-outline" slot="start"></ion-icon>
-          {{ editandoSaludId ? 'Actualizar salud' : 'Guardar salud' }}
+          {{ editandoSaludId ? 'Actualizar' : 'Guardar salud' }}
         </ion-button>
       </div>
-
     </ion-content>
   </ng-template>
 </ion-modal>
 
-<!-- ══════════════════════════════════════
-     MODAL: Lista de Vacunas
-════════════════════════════════════════ -->
+<!-- ══ MODAL: Lista Vacunas ═════════════════════════════════════════════════ -->
 <ion-modal #modalVacunas>
   <ng-template>
-    <ion-header>
-      <ion-toolbar color="tertiary">
-        <ion-title>💉 Vacunas — {{ mascotaSeleccionadaParaVacunas?.nombre }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="cerrarModalVacunas()"><ion-icon name="close-outline"></ion-icon></ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <ion-header><ion-toolbar color="tertiary">
+      <ion-title>💉 Vacunas — {{ mascotaSeleccionadaParaVacunas?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cerrarModalVacunas()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
     <ion-content>
-
       <ng-container *ngIf="mascotaSeleccionadaParaVacunas">
         <ng-container *ngIf="getVacunasDeMascota(mascotaSeleccionadaParaVacunas.id).length > 0; else sinVacunas">
           <ion-list>
             <ion-list-header><ion-label>Vacunas registradas</ion-label></ion-list-header>
-            <ion-card
-              *ngFor="let v of getVacunasDeMascota(mascotaSeleccionadaParaVacunas.id)"
-              style="margin:8px;">
+            <ion-card *ngFor="let v of getVacunasDeMascota(mascotaSeleccionadaParaVacunas.id)" style="margin:8px;">
               <ion-card-content>
                 <p style="font-weight:700; font-size:15px; margin:0 0 6px">💉 {{ v.tipo_vacuna }}</p>
-                <p style="font-size:13px; margin:2px 0">📅 Aplicación: <strong>{{ v.fecha_aplicacion }}</strong></p>
-                <p style="font-size:13px; margin:2px 0" *ngIf="v.proxima_dosis">
-                  🔔 Próxima dosis: <strong>{{ v.proxima_dosis }}</strong>
-                </p>
-                <p style="font-size:13px; margin:2px 0">⚖️ Peso al momento: <strong>{{ v.peso }} kg</strong></p>
-                <p style="font-size:13px; margin:2px 0" *ngIf="v.observaciones">
-                  📝 {{ v.observaciones }}
-                </p>
-                <div style="display:flex; gap:8px; margin-top:10px;">
-                  <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioVacuna(v)">
-                    <ion-icon name="create-outline" slot="start"></ion-icon> Editar
-                  </ion-button>
-                  <ion-button size="small" fill="outline" color="danger" (click)="eliminarVacuna(v)">
-                    <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
-                  </ion-button>
+                <p style="font-size:13px; margin:2px 0">📅 Aplicación: <strong>{{ formatearFecha(v.fecha_aplicacion) }}</strong></p>
+                <p style="font-size:13px; margin:2px 0" *ngIf="v.proxima_dosis">🔔 Próxima: <strong>{{ formatearFecha(v.proxima_dosis) }}</strong></p>
+                <p style="font-size:13px; margin:2px 0">⚖️ Peso: <strong>{{ v.peso }} kg</strong></p>
+                <p style="font-size:13px; margin:2px 0" *ngIf="v.observaciones">📝 {{ v.observaciones }}</p>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioVacuna(v)"><ion-icon name="create-outline" slot="start"></ion-icon> Editar</ion-button>
+                  <ion-button size="small" fill="outline" color="danger" (click)="eliminarVacuna(v)"><ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar</ion-button>
                 </div>
               </ion-card-content>
             </ion-card>
           </ion-list>
         </ng-container>
-
         <ng-template #sinVacunas>
           <div style="text-align:center; padding:50px 20px; color:#aaa;">
             <ion-icon name="shield-checkmark-outline" style="font-size:56px;"></ion-icon>
-            <p>No hay vacunas registradas</p>
+            <p>Sin vacunas registradas</p>
           </div>
         </ng-template>
       </ng-container>
-
       <div class="ion-padding">
         <ion-button expand="block" color="tertiary" (click)="abrirFormularioVacuna()">
-          <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-          Agregar vacuna
+          <ion-icon name="add-circle-outline" slot="start"></ion-icon> Agregar vacuna
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Formulario Vacuna ═════════════════════════════════════════════ -->
+<ion-modal #modalVacuna>
+  <ng-template>
+    <ion-header><ion-toolbar color="tertiary">
+      <ion-title>{{ editandoVacunaId ? 'Editar Vacuna' : 'Nueva Vacuna' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarVacuna()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content class="ion-padding">
+      <ion-item [class.ion-invalid]="esInvalidoVacuna('tipo_vacuna')">
+        <ion-label position="stacked">Tipo / Nombre de vacuna</ion-label>
+        <ion-input [formControl]="tipoVacunaCtrl" placeholder="Ej: Rabia, Moquillo"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+      <ion-item [class.ion-invalid]="esInvalidoVacuna('fecha_aplicacion')">
+        <ion-label position="stacked">Fecha de aplicación</ion-label>
+        <ion-input type="date" [formControl]="fechaAplicacionVacCtrl"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Próxima dosis (opcional)</ion-label>
+        <ion-input type="date" [formControl]="proximaDosisVacCtrl"></ion-input>
+      </ion-item>
+      <ion-item [class.ion-invalid]="esInvalidoVacuna('peso')">
+        <ion-label position="stacked">Peso al momento (kg)</ion-label>
+        <ion-input type="number" [formControl]="pesoVacunaCtrl" placeholder="Ej: 8.5"></ion-input>
+        <ion-note slot="error">Peso inválido</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Observaciones (opcional)</ion-label>
+        <ion-input [formControl]="observacionesVacCtrl" placeholder="Ej: Sin reacciones"></ion-input>
+      </ion-item>
+      <div class="ion-padding-top">
+        <ion-button expand="block" color="tertiary" (click)="guardarVacuna()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          {{ editandoVacunaId ? 'Actualizar' : 'Guardar vacuna' }}
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Lista Desparasitaciones ═══════════════════════════════════════ -->
+<ion-modal #modalDesparas>
+  <ng-template>
+    <ion-header><ion-toolbar color="secondary">
+      <ion-title>💊 Desparasitaciones — {{ mascotaSeleccionadaParaDesparas?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cerrarModalDesparas()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content>
+      <ng-container *ngIf="mascotaSeleccionadaParaDesparas">
+        <ng-container *ngIf="getDesparasDeMascota(mascotaSeleccionadaParaDesparas.id).length > 0; else sinDesparas">
+          <ion-list>
+            <ion-list-header><ion-label>Historial</ion-label></ion-list-header>
+            <ion-card *ngFor="let d of getDesparasDeMascota(mascotaSeleccionadaParaDesparas.id)" style="margin:8px;">
+              <ion-card-content>
+                <p style="font-weight:700; font-size:15px; margin:0 0 6px">💊 {{ d.nombre_desparasitante }}</p>
+                <p style="font-size:13px; margin:2px 0">📅 Aplicación: <strong>{{ formatearFecha(d.fecha_aplicacion) }}</strong></p>
+                <p style="font-size:13px; margin:2px 0" *ngIf="d.proxima_dosis">🔔 Próxima: <strong>{{ formatearFecha(d.proxima_dosis) }}</strong></p>
+                <p style="font-size:13px; margin:2px 0">⚖️ Peso: <strong>{{ d.peso }} kg</strong></p>
+                <p style="font-size:13px; margin:2px 0" *ngIf="d.observaciones">📝 {{ d.observaciones }}</p>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioDespara(d)"><ion-icon name="create-outline" slot="start"></ion-icon> Editar</ion-button>
+                  <ion-button size="small" fill="outline" color="danger" (click)="eliminarDespara(d)"><ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar</ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-list>
+        </ng-container>
+        <ng-template #sinDesparas>
+          <div style="text-align:center; padding:50px 20px; color:#aaa;">
+            <ion-icon name="nutrition-outline" style="font-size:56px;"></ion-icon>
+            <p>Sin desparasitaciones registradas</p>
+          </div>
+        </ng-template>
+      </ng-container>
+      <div class="ion-padding">
+        <ion-button expand="block" color="secondary" (click)="abrirFormularioDespara()">
+          <ion-icon name="add-circle-outline" slot="start"></ion-icon> Agregar desparasitación
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Formulario Desparasitación ════════════════════════════════════ -->
+<ion-modal #modalDespara>
+  <ng-template>
+    <ion-header><ion-toolbar color="secondary">
+      <ion-title>{{ editandoDesparaId ? 'Editar' : 'Nueva Desparasitación' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarDespara()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content class="ion-padding">
+      <ion-item [class.ion-invalid]="esInvalidoDespara('nombre_desparasitante')">
+        <ion-label position="stacked">Nombre desparasitante (marca)</ion-label>
+        <ion-input [formControl]="nombreDesparasitanteCtrl" placeholder="Ej: Drontal, Milbemax"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+      <ion-item [class.ion-invalid]="esInvalidoDespara('fecha_aplicacion')">
+        <ion-label position="stacked">Fecha de aplicación</ion-label>
+        <ion-input type="date" [formControl]="fechaAplicacionDesCtrl"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Próxima dosis (opcional)</ion-label>
+        <ion-input type="date" [formControl]="proximaDosisDesCtrl"></ion-input>
+      </ion-item>
+      <ion-item [class.ion-invalid]="esInvalidoDespara('peso')">
+        <ion-label position="stacked">Peso al momento (kg)</ion-label>
+        <ion-input type="number" [formControl]="pesoDesparaCtrl" placeholder="Ej: 8.5"></ion-input>
+        <ion-note slot="error">Peso inválido</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Observaciones (opcional)</ion-label>
+        <ion-input [formControl]="observacionesDesCtrl" placeholder="Ej: Con comida"></ion-input>
+      </ion-item>
+      <div class="ion-padding-top">
+        <ion-button expand="block" color="secondary" (click)="guardarDespara()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          {{ editandoDesparaId ? 'Actualizar' : 'Guardar' }}
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Lista Comidas ══════════════════════════════════════════════════ -->
+<ion-modal #modalComidas>
+  <ng-template>
+    <ion-header><ion-toolbar color="warning">
+      <ion-title>🍽️ Comidas — {{ mascotaSeleccionadaParaComidas?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cerrarModalComidas()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content>
+
+      <!-- Selector Hoy / Historial -->
+      <ion-segment [(ngModel)]="vistaComidas" style="margin:12px;">
+        <ion-segment-button value="hoy">
+          <ion-label>Hoy</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="historial">
+          <ion-label>Historial</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <ng-container *ngIf="mascotaSeleccionadaParaComidas">
+
+        <!-- ─── VISTA HOY ─────────────────────────────────────────────── -->
+        <ng-container *ngIf="vistaComidas === 'hoy'">
+
+          <!-- Total del día -->
+          <div style="margin:12px; background:#fff3e0; border-radius:10px; padding:14px; text-align:center;">
+            <p style="margin:0; font-size:13px; color:#e65100">Total consumido hoy</p>
+            <p style="margin:4px 0 0; font-size:32px; font-weight:700; color:#e65100">
+              {{ getTotalGrHoy(mascotaSeleccionadaParaComidas.id) }} <span style="font-size:18px">gr</span>
+            </p>
+            <p style="margin:4px 0 0; font-size:12px; color:#aaa">{{ fechaHoy }}</p>
+          </div>
+
+          <ng-container *ngIf="getComidasHoy(mascotaSeleccionadaParaComidas.id).length > 0; else sinComidasHoy">
+            <ion-list>
+              <ion-list-header><ion-label>Registros de hoy</ion-label></ion-list-header>
+              <ion-card *ngFor="let c of getComidasHoy(mascotaSeleccionadaParaComidas.id)" style="margin:8px;">
+                <ion-card-content>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                      <p style="font-weight:700; font-size:15px; margin:0 0 4px">🍽️ {{ c.tipo_comida }}</p>
+                      <p style="font-size:13px; margin:2px 0">⚖️ <strong>{{ c.cantidad }} gr</strong> · 🕐 {{ c.hora }}</p>
+                      <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="c.observaciones">📝 {{ c.observaciones }}</p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                      <ion-button size="small" fill="clear" color="primary" (click)="abrirFormularioComida(c)">
+                        <ion-icon name="create-outline"></ion-icon>
+                      </ion-button>
+                      <ion-button size="small" fill="clear" color="danger" (click)="eliminarComida(c)">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </ion-button>
+                    </div>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            </ion-list>
+          </ng-container>
+          <ng-template #sinComidasHoy>
+            <div style="text-align:center; padding:30px 20px; color:#aaa;">
+              <ion-icon name="restaurant-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin comidas registradas hoy</p>
+            </div>
+          </ng-template>
+        </ng-container>
+
+        <!-- ─── VISTA HISTORIAL ───────────────────────────────────────── -->
+        <ng-container *ngIf="vistaComidas === 'historial'">
+          <ng-container *ngIf="getComidasAgrupadas(mascotaSeleccionadaParaComidas.id).length > 0; else sinHistorial">
+            <ion-card *ngFor="let grupo of getComidasAgrupadas(mascotaSeleccionadaParaComidas.id)" style="margin:8px;">
+              <ion-card-header>
+                <ion-card-title style="font-size:15px;">
+                  📅 {{ grupo.fecha }}
+                  <span style="float:right; color:#e65100; font-size:14px;">{{ grupo.total }} gr</span>
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div *ngFor="let c of grupo.comidas" style="border-bottom:1px solid #f0f0f0; padding:6px 0;">
+                  <p style="margin:0; font-size:13px">
+                    🍽️ <strong>{{ c.tipo_comida }}</strong> · {{ c.cantidad }} gr · 🕐 {{ c.hora }}
+                  </p>
+                  <p style="margin:2px 0; font-size:11px; color:#aaa" *ngIf="c.observaciones">{{ c.observaciones }}</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ng-container>
+          <ng-template #sinHistorial>
+            <div style="text-align:center; padding:40px 20px; color:#aaa;">
+              <ion-icon name="time-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin historial de comidas</p>
+            </div>
+          </ng-template>
+        </ng-container>
+
+      </ng-container>
+
+      <div class="ion-padding">
+        <ion-button expand="block" color="warning" (click)="abrirFormularioComida()">
+          <ion-icon name="add-circle-outline" slot="start"></ion-icon> Registrar comida
         </ion-button>
       </div>
 
@@ -270,53 +476,213 @@
   </ng-template>
 </ion-modal>
 
-<!-- ══════════════════════════════════════
-     MODAL: Formulario Vacuna
-════════════════════════════════════════ -->
-<ion-modal #modalVacuna>
+<!-- ══ MODAL: Formulario Comida ══════════════════════════════════════════════ -->
+<ion-modal #modalComida>
   <ng-template>
-    <ion-header>
-      <ion-toolbar color="tertiary">
-        <ion-title>{{ editandoVacunaId ? 'Editar Vacuna' : 'Nueva Vacuna' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="cancelarVacuna()"><ion-icon name="close-outline"></ion-icon></ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <ion-header><ion-toolbar color="warning">
+      <ion-title>{{ editandoComidaId ? 'Editar Comida' : 'Nueva Comida' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarComida()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
     <ion-content class="ion-padding">
 
-      <ion-item [class.ion-invalid]="esInvalidoVacuna('tipo_vacuna')">
-        <ion-label position="stacked">Tipo / Nombre de vacuna</ion-label>
-        <ion-input [formControl]="tipoVacunaCtrl" placeholder="Ej: Rabia, Moquillo, Parvovirus"></ion-input>
+      <ion-item [class.ion-invalid]="esInvalidoComida('tipo_comida')">
+        <ion-label position="stacked">Tipo de comida</ion-label>
+        <ion-input [formControl]="tipoComidaCtrl" placeholder="Ej: Crónica, Royal Canin, Húmeda"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
       </ion-item>
 
-      <ion-item [class.ion-invalid]="esInvalidoVacuna('fecha_aplicacion')">
-        <ion-label position="stacked">Fecha de aplicación</ion-label>
-        <ion-input type="date" [formControl]="fechaAplicacionCtrl"></ion-input>
+      <ion-item [class.ion-invalid]="esInvalidoComida('cantidad')">
+        <ion-label position="stacked">Cantidad (gr)</ion-label>
+        <ion-input type="number" [formControl]="cantidadCtrl" placeholder="Ej: 50"></ion-input>
+        <ion-note slot="error">Ingresa una cantidad válida</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoComida('hora')">
+        <ion-label position="stacked">Hora</ion-label>
+        <ion-input type="time" [formControl]="horaCtrl"></ion-input>
         <ion-note slot="error">Campo requerido</ion-note>
-      </ion-item>
-
-      <ion-item>
-        <ion-label position="stacked">Próxima dosis (opcional)</ion-label>
-        <ion-input type="date" [formControl]="proximaDosisCtrl"></ion-input>
-      </ion-item>
-
-      <ion-item [class.ion-invalid]="esInvalidoVacuna('peso')">
-        <ion-label position="stacked">Peso al momento (kg)</ion-label>
-        <ion-input type="number" [formControl]="pesoVacunaCtrl" placeholder="Ej: 8.5"></ion-input>
-        <ion-note slot="error">Ingresa un peso válido</ion-note>
       </ion-item>
 
       <ion-item>
         <ion-label position="stacked">Observaciones (opcional)</ion-label>
-        <ion-input [formControl]="observacionesCtrl" placeholder="Ej: Sin reacciones adversas"></ion-input>
+        <ion-input [formControl]="observacionesComidaCtrl" placeholder="Ej: Se lo comió todo"></ion-input>
       </ion-item>
 
       <div class="ion-padding-top">
-        <ion-button expand="block" color="tertiary" (click)="guardarVacuna()">
+        <ion-button expand="block" color="warning" (click)="guardarComida()">
           <ion-icon name="save-outline" slot="start"></ion-icon>
-          {{ editandoVacunaId ? 'Actualizar vacuna' : 'Guardar vacuna' }}
+          {{ editandoComidaId ? 'Actualizar' : 'Guardar comida' }}
+        </ion-button>
+      </div>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Lista Excreciones ═════════════════════════════════════════════ -->
+<ion-modal #modalExcreciones>
+  <ng-template>
+    <ion-header><ion-toolbar color="medium">
+      <ion-title>🧪 Excreciones — {{ mascotaSeleccionadaParaExcreciones?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cerrarModalExcreciones()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content>
+
+      <!-- Selector Hoy / Historial -->
+      <ion-segment [(ngModel)]="vistaComidas" style="margin:12px;">
+        <ion-segment-button value="hoy"><ion-label>Hoy</ion-label></ion-segment-button>
+        <ion-segment-button value="historial"><ion-label>Historial</ion-label></ion-segment-button>
+      </ion-segment>
+
+      <ng-container *ngIf="mascotaSeleccionadaParaExcreciones">
+
+        <!-- ─── HOY ──────────────────────────────────────────────────── -->
+        <ng-container *ngIf="vistaComidas === 'hoy'">
+          <ng-container *ngIf="getExcrecionesHoy(mascotaSeleccionadaParaExcreciones.id).length > 0; else sinExcHoy">
+            <ion-list>
+              <ion-list-header><ion-label>Registros de hoy</ion-label></ion-list-header>
+              <ion-card *ngFor="let e of getExcrecionesHoy(mascotaSeleccionadaParaExcreciones.id)" style="margin:8px;">
+                <ion-card-content>
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                      <p style="font-weight:700; font-size:15px; margin:0 0 4px">
+                        {{ e.tipo === 'Heces' ? '💩' : e.tipo === 'Orina' ? '🟡' : '🤮' }} {{ e.tipo }}
+                      </p>
+                      <p style="font-size:13px; margin:2px 0">🕐 <strong>{{ e.hora }}</strong> · 📏 {{ e.cantidad }}</p>
+                      <p style="font-size:13px; margin:2px 0" *ngIf="e.consistencia">Consistencia: <strong>{{ e.consistencia }}</strong></p>
+                      <p style="font-size:13px; margin:2px 0" *ngIf="e.color">Color: <strong>{{ e.color }}</strong></p>
+                      <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="e.observaciones">📝 {{ e.observaciones }}</p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                      <ion-button size="small" fill="clear" color="primary" (click)="abrirFormularioExcrecion(e)">
+                        <ion-icon name="create-outline"></ion-icon>
+                      </ion-button>
+                      <ion-button size="small" fill="clear" color="danger" (click)="eliminarExcrecion(e)">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </ion-button>
+                    </div>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            </ion-list>
+          </ng-container>
+          <ng-template #sinExcHoy>
+            <div style="text-align:center; padding:40px 20px; color:#aaa;">
+              <ion-icon name="flask-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin registros hoy</p>
+            </div>
+          </ng-template>
+        </ng-container>
+
+        <!-- ─── HISTORIAL ─────────────────────────────────────────────── -->
+        <ng-container *ngIf="vistaComidas === 'historial'">
+          <ng-container *ngIf="getExcrecionesAgrupadas(mascotaSeleccionadaParaExcreciones.id).length > 0; else sinExcHistorial">
+            <ion-card *ngFor="let grupo of getExcrecionesAgrupadas(mascotaSeleccionadaParaExcreciones.id)" style="margin:8px;">
+              <ion-card-header>
+                <ion-card-title style="font-size:15px;">📅 {{ grupo.fecha }}</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div *ngFor="let e of grupo.excreciones" style="border-bottom:1px solid #f0f0f0; padding:6px 0;">
+                  <p style="margin:0; font-size:13px">
+                    {{ e.tipo === 'Heces' ? '💩' : e.tipo === 'Orina' ? '🟡' : '🤮' }}
+                    <strong>{{ e.tipo }}</strong> · {{ e.cantidad }} · 🕐 {{ e.hora }}
+                  </p>
+                  <p style="margin:2px 0; font-size:11px; color:#888" *ngIf="e.consistencia || e.color">
+                    {{ e.consistencia }} {{ e.color ? '· ' + e.color : '' }}
+                  </p>
+                  <p style="margin:2px 0; font-size:11px; color:#aaa" *ngIf="e.observaciones">{{ e.observaciones }}</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ng-container>
+          <ng-template #sinExcHistorial>
+            <div style="text-align:center; padding:40px 20px; color:#aaa;">
+              <ion-icon name="time-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin historial de excreciones</p>
+            </div>
+          </ng-template>
+        </ng-container>
+
+      </ng-container>
+
+      <div class="ion-padding">
+        <ion-button expand="block" color="medium" (click)="abrirFormularioExcrecion()">
+          <ion-icon name="add-circle-outline" slot="start"></ion-icon> Registrar excreción
+        </ion-button>
+      </div>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Formulario Excreción ══════════════════════════════════════════ -->
+<ion-modal #modalExcrecion>
+  <ng-template>
+    <ion-header><ion-toolbar color="medium">
+      <ion-title>{{ editandoExcrecionId ? 'Editar Registro' : 'Nueva Excreción' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarExcrecion()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content class="ion-padding">
+
+      <ion-item [class.ion-invalid]="esInvalidoExcrecion('tipo')">
+        <ion-label position="stacked">Tipo</ion-label>
+        <ion-select [formControl]="tipoExcrecionCtrl" placeholder="Seleccionar">
+          <ion-select-option value="Heces">💩 Heces</ion-select-option>
+          <ion-select-option value="Orina">🟡 Orina</ion-select-option>
+          <ion-select-option value="Vómito">🤮 Vómito</ion-select-option>
+        </ion-select>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoExcrecion('cantidad')">
+        <ion-label position="stacked">Cantidad / Volumen</ion-label>
+        <ion-select [formControl]="cantidadExcrecionCtrl" placeholder="Seleccionar">
+          <ion-select-option value="Poco">Poco</ion-select-option>
+          <ion-select-option value="Normal">Normal</ion-select-option>
+          <ion-select-option value="Mucho">Mucho</ion-select-option>
+        </ion-select>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Consistencia (opcional)</ion-label>
+        <ion-select [formControl]="consistenciaCtrl" placeholder="Seleccionar">
+          <ion-select-option value="Sólido">Sólido</ion-select-option>
+          <ion-select-option value="Semisólido">Semisólido</ion-select-option>
+          <ion-select-option value="Blando">Blando</ion-select-option>
+          <ion-select-option value="Líquido">Líquido</ion-select-option>
+          <ion-select-option value="Mucoso">Mucoso</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Color (opcional)</ion-label>
+        <ion-select [formControl]="colorCtrl" placeholder="Seleccionar">
+          <ion-select-option value="Normal">Normal</ion-select-option>
+          <ion-select-option value="Amarillo">Amarillo</ion-select-option>
+          <ion-select-option value="Café">Café</ion-select-option>
+          <ion-select-option value="Verde">Verde</ion-select-option>
+          <ion-select-option value="Rojo">Rojo (sangre)</ion-select-option>
+          <ion-select-option value="Negro">Negro</ion-select-option>
+          <ion-select-option value="Blanco">Blanco/Gris</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoExcrecion('hora')">
+        <ion-label position="stacked">Hora</ion-label>
+        <ion-input type="time" [formControl]="horaExcrecionCtrl"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Observaciones (opcional)</ion-label>
+        <ion-input [formControl]="observacionesExcCtrl" placeholder="Ej: Con sangre, olor fuerte"></ion-input>
+      </ion-item>
+
+      <div class="ion-padding-top">
+        <ion-button expand="block" color="medium" (click)="guardarExcrecion()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          {{ editandoExcrecionId ? 'Actualizar' : 'Guardar' }}
         </ion-button>
       </div>
 
