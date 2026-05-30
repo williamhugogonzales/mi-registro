@@ -105,9 +105,11 @@ export class HomePage implements OnInit {
       medkitOutline, addCircleOutline, shieldCheckmarkOutline,
       nutritionOutline, restaurantOutline, timeOutline, flaskOutline,
     });
-    // Fecha de hoy en formato dd/mm/yyyy para comparar
+    // Fecha de hoy normalizada sin ceros: d/m/yyyy
     const hoy = new Date();
-    this.fechaHoy = hoy.toLocaleDateString('es-ES');
+    const raw = hoy.toLocaleDateString('es-ES'); // puede dar "29/5/2026" o "09/05/2026"
+    const partes = raw.split('/');
+    this.fechaHoy = `${parseInt(partes[0])}/${parseInt(partes[1])}/${partes[2]}`;
   }
 
   ngOnInit() {
@@ -231,6 +233,54 @@ export class HomePage implements OnInit {
     return `${d}/${m}/${y}`;
   }
 
+  // Normaliza cualquier formato de fecha a d/m/yyyy para comparar con fechaHoy
+  private normalizarFechaRegistro(fecha: any): string {
+    if (!fecha) return '';
+    const str = String(fecha).trim();
+
+    // ISO con zona horaria: "2026-05-27T04:00:00.000Z" → "27/5/2026"
+    if (str.includes('T')) {
+      const iso = str.split('T')[0];
+      const [y, m, d] = iso.split('-');
+      return `${parseInt(d)}/${parseInt(m)}/${y}`;
+    }
+    // yyyy-MM-dd → d/m/yyyy
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, d] = str.split('-');
+      return `${parseInt(d)}/${parseInt(m)}/${y}`;
+    }
+    // Ya está en d/m/yyyy o dd/mm/yyyy — normalizar sin ceros
+    if (str.includes('/')) {
+      const partes = str.split('/');
+      if (partes.length === 3) {
+        return `${parseInt(partes[0])}/${parseInt(partes[1])}/${partes[2]}`;
+      }
+    }
+    return str;
+  }
+
+  // Compara cualquier formato de fecha con hoy
+  esFechaHoy(fecha: any): boolean {
+    if (!fecha) return false;
+    const str = String(fecha).trim();
+    const hoy = new Date();
+    const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+    const hoyLocal = hoy.toLocaleDateString('es-ES'); // dd/mm/yyyy
+
+    // ISO con T
+    if (str.includes('T')) return str.split('T')[0] === hoyISO;
+    // yyyy-MM-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str === hoyISO;
+    // dd/mm/yyyy o d/m/yyyy
+    if (str.includes('/')) return str === hoyLocal;
+    // dd-mm-yyyy
+    if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+      const [d,m,y] = str.split('-');
+      return `${y}-${m}-${d}` === hoyISO;
+    }
+    return false;
+  }
+
   // ─── CARGAR DATOS ─────────────────────────────────────────────────────────
   cargarDatos() {
     this.cargandoDatos = true;
@@ -247,18 +297,46 @@ export class HomePage implements OnInit {
     });
   }
 
-  cargarSalud()    { this.sheetsService.obtenerSalud().subscribe({ next: d => this.registrosSalud = d, error: () => {} }); }
-  cargarVacunas()  { this.sheetsService.obtenerVacunas().subscribe({ next: d => this.todasVacunas = d, error: () => {} }); }
-  cargarDesparas() { this.sheetsService.obtenerDesparasitaciones().subscribe({ next: d => this.todasDesparas = d, error: () => {} }); }
+  cargarSalud()    {
+    this.sheetsService.obtenerSalud().subscribe({
+      next: d => { this.registrosSalud = d.map((s: any) => ({ ...s, fechaRegistro: s.fechaRegistro || s.fecharegistro || '' })); },
+      error: () => {}
+    });
+  }
+  cargarVacunas()  {
+    this.sheetsService.obtenerVacunas().subscribe({
+      next: d => { this.todasVacunas = d.map((v: any) => ({ ...v, fechaRegistro: v.fechaRegistro || v.fecharegistro || '' })); },
+      error: () => {}
+    });
+  }
+  cargarDesparas() {
+    this.sheetsService.obtenerDesparasitaciones().subscribe({
+      next: d => { this.todasDesparas = d.map((x: any) => ({ ...x, fechaRegistro: x.fechaRegistro || x.fecharegistro || '' })); },
+      error: () => {}
+    });
+  }
   cargarComidas()  {
     this.sheetsService.obtenerComidas().subscribe({
-      next: d => { this.todasComidas = d; this.cargandoDatos = false; },
+      next: d => {
+        // Normalizar fecharegistro → fechaRegistro (el servidor devuelve en minúsculas)
+        this.todasComidas = d.map((c: any) => ({
+          ...c,
+          fechaRegistro: c.fechaRegistro || c.fecharegistro || ''
+        }));
+        this.cargandoDatos = false;
+      },
       error: () => { this.cargandoDatos = false; }
     });
   }
   cargarExcreciones() {
     this.sheetsService.obtenerExcreciones().subscribe({
-      next: d => { this.todasExcreciones = d; },
+      next: d => {
+        // Normalizar fecharegistro → fechaRegistro
+        this.todasExcreciones = d.map((e: any) => ({
+          ...e,
+          fechaRegistro: e.fechaRegistro || e.fecharegistro || ''
+        }));
+      },
       error: () => {}
     });
   }
@@ -277,12 +355,12 @@ export class HomePage implements OnInit {
     return this.todasExcreciones.filter(e => String(e.id_persona) === String(id));
   }
   getExcrecionesHoy(id: string): Excrecion[] {
-    return this.getExcrecionesDeMascota(id).filter(e => e.fechaRegistro === this.fechaHoy);
+    return this.getExcrecionesDeMascota(id).filter(e => this.esFechaHoy(e.fechaRegistro));
   }
   getExcrecionesAgrupadas(id: string): { fecha: string; excreciones: Excrecion[] }[] {
     const mapa = new Map<string, Excrecion[]>();
     this.getExcrecionesDeMascota(id).forEach(e => {
-      const f = e.fechaRegistro || 'Sin fecha';
+      const f = this.normalizarFechaRegistro(e.fechaRegistro || (e as any).fecharegistro) || 'Sin fecha';
       if (!mapa.has(f)) mapa.set(f, []);
       mapa.get(f)!.push(e);
     });
@@ -294,7 +372,7 @@ export class HomePage implements OnInit {
     return this.todasComidas.filter(c => String(c.id_persona) === String(id));
   }
   getComidasHoy(id: string): Comida[] {
-    return this.getComidasDeMascota(id).filter(c => c.fechaRegistro === this.fechaHoy);
+    return this.getComidasDeMascota(id).filter(c => this.esFechaHoy(c.fechaRegistro));
   }
   getTotalGrHoy(id: string): number {
     return this.getComidasHoy(id).reduce((sum, c) => sum + Number(c.cantidad || 0), 0);
@@ -303,7 +381,7 @@ export class HomePage implements OnInit {
   getComidasAgrupadas(id: string): { fecha: string; comidas: Comida[]; total: number }[] {
     const mapa = new Map<string, Comida[]>();
     this.getComidasDeMascota(id).forEach(c => {
-      const f = c.fechaRegistro || 'Sin fecha';
+      const f = this.normalizarFechaRegistro(c.fechaRegistro || (c as any).fecharegistro) || 'Sin fecha';
       if (!mapa.has(f)) mapa.set(f, []);
       mapa.get(f)!.push(c);
     });
