@@ -381,14 +381,22 @@
     <ion-content>
 
       <!-- Selector Hoy / Historial -->
-      <ion-segment [(ngModel)]="vistaComidas" style="margin:12px;">
-        <ion-segment-button value="hoy">
-          <ion-label>Hoy</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="historial">
-          <ion-label>Historial</ion-label>
-        </ion-segment-button>
-      </ion-segment>
+      <div style="display:flex; margin:12px; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
+        <button
+          (click)="vistaComidas='hoy'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaComidas==='hoy' ? '#3880ff' : '#f5f5f5'"
+          [style.color]="vistaComidas==='hoy' ? '#fff' : '#333'">
+          Hoy
+        </button>
+        <button
+          (click)="vistaComidas='historial'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaComidas==='historial' ? '#3880ff' : '#f5f5f5'"
+          [style.color]="vistaComidas==='historial' ? '#fff' : '#333'">
+          Historial
+        </button>
+      </div>
 
       <ng-container *ngIf="mascotaSeleccionadaParaComidas">
 
@@ -529,10 +537,22 @@
     <ion-content>
 
       <!-- Selector Hoy / Historial -->
-      <ion-segment [(ngModel)]="vistaComidas" style="margin:12px;">
-        <ion-segment-button value="hoy"><ion-label>Hoy</ion-label></ion-segment-button>
-        <ion-segment-button value="historial"><ion-label>Historial</ion-label></ion-segment-button>
-      </ion-segment>
+      <div style="display:flex; margin:12px; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
+        <button
+          (click)="vistaComidas='hoy'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaComidas==='hoy' ? '#3880ff' : '#f5f5f5'"
+          [style.color]="vistaComidas==='hoy' ? '#fff' : '#333'">
+          Hoy
+        </button>
+        <button
+          (click)="vistaComidas='historial'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaComidas==='historial' ? '#3880ff' : '#f5f5f5'"
+          [style.color]="vistaComidas==='historial' ? '#fff' : '#333'">
+          Historial
+        </button>
+      </div>
 
       <ng-container *ngIf="mascotaSeleccionadaParaExcreciones">
 

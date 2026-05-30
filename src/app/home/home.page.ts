@@ -1,12 +1,11 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
   IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
-  IonSegment, IonSegmentButton,
   ToastController, LoadingController, AlertController, IonModal, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -28,12 +27,11 @@ import { Excrecion } from '../models/excrecion.model';
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, FormsModule,
+    CommonModule, ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
     IonButton, IonIcon, IonList, IonListHeader, IonNote, IonButtons,
-    IonSegment, IonSegmentButton,
     IonModal, IonFab, IonFabButton
   ],
   templateUrl: './home.page.html',
