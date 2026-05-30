@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import {
@@ -36,7 +36,6 @@ import { Excrecion } from '../models/excrecion.model';
   ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomePage implements OnInit {
   @ViewChild('modalMascota')  modalMascota:  IonModal | null = null;
@@ -92,7 +91,6 @@ export class HomePage implements OnInit {
   get vistaComidas(): string { return this._vistaComidas; }
   set vistaComidas(val: string) {
     this._vistaComidas = val;
-    this.cdr.markForCheck();
   }
   fechaHoy: string = '';
 
@@ -108,8 +106,7 @@ export class HomePage implements OnInit {
     private sheetsService: SheetsService,
     private toastCtrl:    ToastController,
     private loadingCtrl:  LoadingController,
-    private alertCtrl:    AlertController,
-    private cdr:          ChangeDetectorRef
+    private alertCtrl:    AlertController
   ) {
     addIcons({
       saveOutline, refreshOutline, trashOutline, pawOutline,
@@ -117,11 +114,9 @@ export class HomePage implements OnInit {
       medkitOutline, addCircleOutline, shieldCheckmarkOutline,
       nutritionOutline, restaurantOutline, timeOutline, flaskOutline,
     });
-    // Fecha de hoy normalizada sin ceros: d/m/yyyy
+    // Fecha de hoy en formato d/m/yyyy sin ceros iniciales
     const hoy = new Date();
-    const raw = hoy.toLocaleDateString('es-ES'); // puede dar "29/5/2026" o "09/05/2026"
-    const partes = raw.split('/');
-    this.fechaHoy = `${parseInt(partes[0])}/${parseInt(partes[1])}/${partes[2]}`;
+    this.fechaHoy = `${hoy.getDate()}/${hoy.getMonth() + 1}/${hoy.getFullYear()}`;
   }
 
   ngOnInit() {
@@ -301,22 +296,23 @@ export class HomePage implements OnInit {
   private normalizarFechaRegistro(fecha: any): string {
     if (!fecha) return '';
     const str = String(fecha).trim();
+    if (!str || str === 'undefined' || str === 'null') return '';
 
-    // ISO con zona horaria: "2026-05-27T04:00:00.000Z" → "27/5/2026"
+    // ISO con zona horaria: "2026-05-30T04:00:00.000Z"
     if (str.includes('T')) {
       const iso = str.split('T')[0];
-      const [y, m, d] = iso.split('-');
-      return `${parseInt(d)}/${parseInt(m)}/${y}`;
+      const partes = iso.split('-');
+      if (partes.length === 3) return `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
     }
-    // yyyy-MM-dd → d/m/yyyy
+    // yyyy-MM-dd
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
       const [y, m, d] = str.split('-');
       return `${parseInt(d)}/${parseInt(m)}/${y}`;
     }
-    // Ya está en d/m/yyyy o dd/mm/yyyy — normalizar sin ceros
+    // d/m/yyyy o dd/mm/yyyy — normalizar sin ceros iniciales
     if (str.includes('/')) {
       const partes = str.split('/');
-      if (partes.length === 3) {
+      if (partes.length === 3 && partes[2].length === 4) {
         return `${parseInt(partes[0])}/${parseInt(partes[1])}/${partes[2]}`;
       }
     }
@@ -400,7 +396,6 @@ export class HomePage implements OnInit {
           fechaRegistro: e.fechaRegistro || e.fecharegistro || ''
         }));
         this.recalcularCache();
-        this.cdr.markForCheck();
       },
       error: () => {}
     });
