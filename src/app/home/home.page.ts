@@ -87,8 +87,15 @@ export class HomePage implements OnInit {
   // Estado excreciones
   mascotaSeleccionadaParaExcreciones: Mascota | null = null;
   editandoExcrecionId:                string | null  = null;
-  vistaComidas: string = 'hoy'; // 'hoy' | 'historial'
+  vistaComidas: string = 'hoy';
   fechaHoy: string = '';
+
+  // Datos precalculados para evitar recalcular en cada ciclo de detección de cambios
+  comidasHoyCache:       Map<string, Comida[]>                              = new Map();
+  comidasAgrupadasCache: Map<string, {fecha:string; comidas:Comida[]; total:number}[]> = new Map();
+  excrecionesHoyCache:   Map<string, Excrecion[]>                           = new Map();
+  excrecionesAgrupadasCache: Map<string, {fecha:string; excreciones:Excrecion[]}[]>   = new Map();
+  totalGrHoyCache:       Map<string, number>                                = new Map();
 
   constructor(
     private fb: FormBuilder,
@@ -224,6 +231,58 @@ export class HomePage implements OnInit {
     return `${años} año${años !== 1 ? 's' : ''}`;
   }
 
+  // Precalcula todos los datos de comidas y excreciones para evitar cálculos en el template
+  recalcularCache() {
+    this.comidasHoyCache.clear();
+    this.comidasAgrupadasCache.clear();
+    this.totalGrHoyCache.clear();
+    this.excrecionesHoyCache.clear();
+    this.excrecionesAgrupadasCache.clear();
+
+    this.mascotas.forEach(m => {
+      const id = String(m.id);
+
+      // Comidas hoy
+      const cHoy = this.todasComidas.filter(c =>
+        String(c.id_persona) === id &&
+        this.normalizarFechaRegistro(c.fechaRegistro) === this.fechaHoy
+      );
+      this.comidasHoyCache.set(id, cHoy);
+      this.totalGrHoyCache.set(id, cHoy.reduce((s, c) => s + Number(c.cantidad || 0), 0));
+
+      // Comidas agrupadas
+      const todasC = this.todasComidas.filter(c => String(c.id_persona) === id);
+      const mapaC = new Map<string, Comida[]>();
+      todasC.forEach(c => {
+        const f = this.normalizarFechaRegistro(c.fechaRegistro) || 'Sin fecha';
+        if (!mapaC.has(f)) mapaC.set(f, []);
+        mapaC.get(f)!.push(c);
+      });
+      this.comidasAgrupadasCache.set(id, Array.from(mapaC.entries())
+        .map(([fecha, comidas]) => ({ fecha, comidas, total: comidas.reduce((s, c) => s + Number(c.cantidad || 0), 0) }))
+        .sort((a, b) => b.fecha.localeCompare(a.fecha)));
+
+      // Excreciones hoy
+      const eHoy = this.todasExcreciones.filter(e =>
+        String(e.id_persona) === id &&
+        this.normalizarFechaRegistro(e.fechaRegistro) === this.fechaHoy
+      );
+      this.excrecionesHoyCache.set(id, eHoy);
+
+      // Excreciones agrupadas
+      const todasE = this.todasExcreciones.filter(e => String(e.id_persona) === id);
+      const mapaE = new Map<string, Excrecion[]>();
+      todasE.forEach(e => {
+        const f = this.normalizarFechaRegistro(e.fechaRegistro) || 'Sin fecha';
+        if (!mapaE.has(f)) mapaE.set(f, []);
+        mapaE.get(f)!.push(e);
+      });
+      this.excrecionesAgrupadasCache.set(id, Array.from(mapaE.entries())
+        .map(([fecha, excreciones]) => ({ fecha, excreciones }))
+        .sort((a, b) => b.fecha.localeCompare(a.fecha)));
+    });
+  }
+
   formatearFecha(fecha: any): string {
     const iso = this.aFormatoInput(fecha);
     if (!iso) return '';
@@ -316,12 +375,12 @@ export class HomePage implements OnInit {
   cargarComidas()  {
     this.sheetsService.obtenerComidas().subscribe({
       next: d => {
-        // Normalizar fecharegistro → fechaRegistro (el servidor devuelve en minúsculas)
         this.todasComidas = d.map((c: any) => ({
           ...c,
           fechaRegistro: c.fechaRegistro || c.fecharegistro || ''
         }));
         this.cargandoDatos = false;
+        this.recalcularCache();
       },
       error: () => { this.cargandoDatos = false; }
     });
@@ -329,11 +388,11 @@ export class HomePage implements OnInit {
   cargarExcreciones() {
     this.sheetsService.obtenerExcreciones().subscribe({
       next: d => {
-        // Normalizar fecharegistro → fechaRegistro
         this.todasExcreciones = d.map((e: any) => ({
           ...e,
           fechaRegistro: e.fechaRegistro || e.fecharegistro || ''
         }));
+        this.recalcularCache();
       },
       error: () => {}
     });
@@ -356,15 +415,7 @@ export class HomePage implements OnInit {
     return this.getExcrecionesDeMascota(id).filter(e => this.esFechaHoy(e.fechaRegistro));
   }
   getExcrecionesAgrupadas(id: string): { fecha: string; excreciones: Excrecion[] }[] {
-    const mapa = new Map<string, Excrecion[]>();
-    this.getExcrecionesDeMascota(id).forEach(e => {
-      const f = this.normalizarFechaRegistro(e.fechaRegistro || (e as any).fecharegistro) || 'Sin fecha';
-      if (!mapa.has(f)) mapa.set(f, []);
-      mapa.get(f)!.push(e);
-    });
-    return Array.from(mapa.entries())
-      .map(([fecha, excreciones]) => ({ fecha, excreciones }))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    return this.excrecionesAgrupadasCache.get(String(id)) || [];
   }
   getComidasDeMascota(id: string): Comida[] {
     return this.todasComidas.filter(c => String(c.id_persona) === String(id));
@@ -373,7 +424,7 @@ export class HomePage implements OnInit {
     return this.getComidasDeMascota(id).filter(c => this.esFechaHoy(c.fechaRegistro));
   }
   getTotalGrHoy(id: string): number {
-    return this.getComidasHoy(id).reduce((sum, c) => sum + Number(c.cantidad || 0), 0);
+    return this.totalGrHoyCache.get(String(id)) || 0;
   }
   // Agrupa comidas por fecha para el historial
   getComidasAgrupadas(id: string): { fecha: string; comidas: Comida[]; total: number }[] {
