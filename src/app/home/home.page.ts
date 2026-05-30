@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import {
@@ -35,7 +35,8 @@ import { Excrecion } from '../models/excrecion.model';
     IonModal, IonFab, IonFabButton
   ],
   templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss']
+  styleUrls: ['./home.page.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomePage implements OnInit {
   @ViewChild('modalMascota')  modalMascota:  IonModal | null = null;
@@ -87,7 +88,12 @@ export class HomePage implements OnInit {
   // Estado excreciones
   mascotaSeleccionadaParaExcreciones: Mascota | null = null;
   editandoExcrecionId:                string | null  = null;
-  vistaComidas: string = 'hoy';
+  private _vistaComidas: string = 'hoy';
+  get vistaComidas(): string { return this._vistaComidas; }
+  set vistaComidas(val: string) {
+    this._vistaComidas = val;
+    this.cdr.markForCheck();
+  }
   fechaHoy: string = '';
 
   // Datos precalculados para evitar recalcular en cada ciclo de detección de cambios
@@ -102,7 +108,8 @@ export class HomePage implements OnInit {
     private sheetsService: SheetsService,
     private toastCtrl:    ToastController,
     private loadingCtrl:  LoadingController,
-    private alertCtrl:    AlertController
+    private alertCtrl:    AlertController,
+    private cdr:          ChangeDetectorRef
   ) {
     addIcons({
       saveOutline, refreshOutline, trashOutline, pawOutline,
@@ -393,6 +400,7 @@ export class HomePage implements OnInit {
           fechaRegistro: e.fechaRegistro || e.fecharegistro || ''
         }));
         this.recalcularCache();
+        this.cdr.markForCheck();
       },
       error: () => {}
     });

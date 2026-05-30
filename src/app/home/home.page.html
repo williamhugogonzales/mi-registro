@@ -445,32 +445,27 @@
         </ng-container>
 
         <!-- ─── VISTA HISTORIAL ───────────────────────────────────────── -->
-        <ng-container *ngIf="vistaComidas === 'historial'">
-          <ng-container *ngIf="getComidasAgrupadas(mascotaSeleccionadaParaComidas.id).length > 0; else sinHistorial">
-            <ion-card *ngFor="let grupo of getComidasAgrupadas(mascotaSeleccionadaParaComidas.id)" style="margin:8px;">
-              <ion-card-header>
-                <ion-card-title style="font-size:15px;">
-                  📅 {{ grupo.fecha }}
-                  <span style="float:right; color:#e65100; font-size:14px;">{{ grupo.total }} gr</span>
-                </ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <div *ngFor="let c of grupo.comidas" style="border-bottom:1px solid #f0f0f0; padding:6px 0;">
-                  <p style="margin:0; font-size:13px">
-                    🍽️ <strong>{{ c.tipo_comida }}</strong> · {{ c.cantidad }} gr · 🕐 {{ c.hora }}
-                  </p>
-                  <p style="margin:2px 0; font-size:11px; color:#aaa" *ngIf="c.observaciones">{{ c.observaciones }}</p>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </ng-container>
+        <div *ngIf="vistaComidas === 'historial'">
+          <div *ngIf="getComidasAgrupadas(mascotaSeleccionadaParaComidas.id).length > 0; else sinHistorial">
+            <div *ngFor="let grupo of getComidasAgrupadas(mascotaSeleccionadaParaComidas.id)"
+                 style="margin:8px; background:#fff; border-radius:8px; padding:10px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <span style="font-weight:600; font-size:14px;">📅 {{ grupo.fecha }}</span>
+                <span style="color:#e65100; font-weight:600;">{{ grupo.total }} gr</span>
+              </div>
+              <div *ngFor="let c of grupo.comidas" style="border-top:1px solid #f0f0f0; padding:4px 0;">
+                <p style="margin:0; font-size:13px">🍽️ <strong>{{ c.tipo_comida }}</strong> · {{ c.cantidad }} gr · 🕐 {{ c.hora }}</p>
+                <p style="margin:0; font-size:11px; color:#aaa" *ngIf="c.observaciones">{{ c.observaciones }}</p>
+              </div>
+            </div>
+          </div>
           <ng-template #sinHistorial>
             <div style="text-align:center; padding:40px 20px; color:#aaa;">
               <ion-icon name="time-outline" style="font-size:48px;"></ion-icon>
               <p>Sin historial de comidas</p>
             </div>
           </ng-template>
-        </ng-container>
+        </div>
 
       </ng-container>
 
