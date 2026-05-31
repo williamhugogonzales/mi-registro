@@ -22,6 +22,7 @@ import { Vacuna } from '../models/vacuna.model';
 import { Desparasitacion } from '../models/desparasitacion.model';
 import { Comida } from '../models/comida.model';
 import { Excrecion } from '../models/excrecion.model';
+import { Tratamiento } from '../models/tratamiento.model';
 
 @Component({
   selector: 'app-home',
@@ -48,6 +49,8 @@ export class HomePage implements OnInit {
   @ViewChild('modalComida')   modalComida:   IonModal | null = null;
   @ViewChild('modalExcreciones') modalExcreciones: IonModal | null = null;
   @ViewChild('modalExcrecion')   modalExcrecion:   IonModal | null = null;
+  @ViewChild('modalTratamientos') modalTratamientos: IonModal | null = null;
+  @ViewChild('modalTratamiento')  modalTratamiento:  IonModal | null = null;
 
   formMascota!: FormGroup;
   formSalud!:   FormGroup;
@@ -55,6 +58,7 @@ export class HomePage implements OnInit {
   formDespara!: FormGroup;
   formComida!:  FormGroup;
   formExcrecion!: FormGroup;
+  formTratamiento!: FormGroup;
 
   mascotas:       Mascota[]         = [];
   registrosSalud: Salud[]           = [];
@@ -62,6 +66,7 @@ export class HomePage implements OnInit {
   todasDesparas:  Desparasitacion[] = [];
   todasComidas:   Comida[]          = [];
   todasExcreciones: Excrecion[]      = [];
+  todosTratamientos: Tratamiento[]   = [];
   cargandoDatos = false;
 
   // Estado mascota
@@ -87,6 +92,10 @@ export class HomePage implements OnInit {
   // Estado excreciones
   mascotaSeleccionadaParaExcreciones: Mascota | null = null;
   editandoExcrecionId:                string | null  = null;
+
+  // Estado tratamientos
+  mascotaSeleccionadaParaTratamientos: Mascota | null = null;
+  editandoTratamientoId:               string | null  = null;
   private _vistaComidas: string = 'hoy';
   get vistaComidas(): string { return this._vistaComidas; }
   set vistaComidas(val: string) {
@@ -161,6 +170,18 @@ export class HomePage implements OnInit {
       hora:          new FormControl('', Validators.required),
       observaciones: new FormControl('')
     });
+    this.formTratamiento = this.fb.group({
+      nombre:        new FormControl('', Validators.required),
+      tipo:          new FormControl('', Validators.required),
+      diagnostico:   new FormControl('', Validators.required),
+      dosis:         new FormControl('', Validators.required),
+      veces_por_dia: new FormControl('', [Validators.required, Validators.min(1), Validators.max(24)]),
+      hora:          new FormControl('', Validators.required),
+      fecha_inicio:  new FormControl('', Validators.required),
+      fecha_fin:     new FormControl(''),
+      observaciones: new FormControl('')
+    });
+
     this.cargarDatos();
   }
 
@@ -188,6 +209,15 @@ export class HomePage implements OnInit {
   get cantidadCtrl()              { return this.formComida.get('cantidad')                as FormControl; }
   get horaCtrl()                  { return this.formComida.get('hora')                   as FormControl; }
   get observacionesComidaCtrl()   { return this.formComida.get('observaciones')           as FormControl; }
+  get nombreTratCtrl()     { return this.formTratamiento.get('nombre')        as FormControl; }
+  get tipoTratCtrl()       { return this.formTratamiento.get('tipo')          as FormControl; }
+  get diagnosticoCtrl()    { return this.formTratamiento.get('diagnostico')   as FormControl; }
+  get dosisCtrl()          { return this.formTratamiento.get('dosis')         as FormControl; }
+  get vecesPorDiaCtrl()    { return this.formTratamiento.get('veces_por_dia') as FormControl; }
+  get horaTratCtrl()       { return this.formTratamiento.get('hora')          as FormControl; }
+  get fechaInicioCtrl()    { return this.formTratamiento.get('fecha_inicio')  as FormControl; }
+  get fechaFinCtrl()       { return this.formTratamiento.get('fecha_fin')     as FormControl; }
+  get observacionesTratCtrl() { return this.formTratamiento.get('observaciones') as FormControl; }
   get tipoExcrecionCtrl()         { return this.formExcrecion.get('tipo')          as FormControl; }
   get cantidadExcrecionCtrl()     { return this.formExcrecion.get('cantidad')       as FormControl; }
   get consistenciaCtrl()          { return this.formExcrecion.get('consistencia')   as FormControl; }
@@ -352,6 +382,7 @@ export class HomePage implements OnInit {
         this.cargarDesparas();
         this.cargarComidas();
         this.cargarExcreciones();
+        this.cargarTratamientos();
       },
       error: () => { this.mostrarToast('❌ Error al cargar mascotas', 'danger'); this.cargandoDatos = false; }
     });
@@ -388,6 +419,18 @@ export class HomePage implements OnInit {
       error: () => { this.cargandoDatos = false; }
     });
   }
+  cargarTratamientos() {
+    this.sheetsService.obtenerTratamientos().subscribe({
+      next: d => {
+        this.todosTratamientos = d.map((t: any) => ({
+          ...t,
+          fechaRegistro: t.fechaRegistro || t.fecharegistro || ''
+        }));
+        this.recalcularCache();
+      },
+      error: () => {}
+    });
+  }
   cargarExcreciones() {
     this.sheetsService.obtenerExcreciones().subscribe({
       next: d => {
@@ -410,6 +453,17 @@ export class HomePage implements OnInit {
   }
   getDesparasDeMascota(id: string): Desparasitacion[] {
     return this.todasDesparas.filter(d => String(d.id_persona) === String(id));
+  }
+  getTratamientosDeMascota(id: string): Tratamiento[] {
+    return this.todosTratamientos.filter(t => String(t.id_persona) === String(id));
+  }
+  getTratamientosActivos(id: string): Tratamiento[] {
+    const hoy = new Date();
+    return this.getTratamientosDeMascota(id).filter(t => {
+      if (!t.fecha_fin) return true;
+      const fin = new Date(this.aFormatoInput(t.fecha_fin) + 'T23:59:59');
+      return fin >= hoy;
+    });
   }
   getExcrecionesDeMascota(id: string): Excrecion[] {
     return this.todasExcreciones.filter(e => String(e.id_persona) === String(id));
@@ -456,6 +510,7 @@ export class HomePage implements OnInit {
   esInvalidoDespara(c: string) { const ctrl = this.formDespara.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
   esInvalidoComida(c: string)  { const ctrl = this.formComida.get(c);  return !!(ctrl?.invalid && ctrl?.touched); }
   esInvalidoExcrecion(c: string){ const ctrl = this.formExcrecion.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
+  esInvalidoTratamiento(c: string){ const ctrl = this.formTratamiento.get(c); return !!(ctrl?.invalid && ctrl?.touched); }
 
   async mostrarToast(mensaje: string, color: string) {
     const toast = await this.toastCtrl.create({ message: mensaje, duration: 2500, color, position: 'top' });
@@ -508,6 +563,7 @@ export class HomePage implements OnInit {
           for (const d of this.getDesparasDeMascota(mascota.id)) await this.sheetsService.eliminarDesparasitacion(d.id_desparasitacion);
           for (const c of this.getComidasDeMascota(mascota.id)) await this.sheetsService.eliminarComida(c.id_comida);
               for (const e of this.getExcrecionesDeMascota(mascota.id)) await this.sheetsService.eliminarExcrecion(e.id_excrecion);
+              for (const t of this.getTratamientosDeMascota(mascota.id)) await this.sheetsService.eliminarTratamiento(t.id_tratamiento);
           await this.sheetsService.eliminarMascota(mascota.id);
           this.mascotas      = this.mascotas.filter(m => m.id !== mascota.id);
           this.registrosSalud = this.registrosSalud.filter(s => String(s.id_persona) !== String(mascota.id));
@@ -515,6 +571,7 @@ export class HomePage implements OnInit {
           this.todasDesparas = this.todasDesparas.filter(d => String(d.id_persona) !== String(mascota.id));
           this.todasComidas  = this.todasComidas.filter(c => String(c.id_persona) !== String(mascota.id));
               this.todasExcreciones = this.todasExcreciones.filter(e => String(e.id_persona) !== String(mascota.id));
+              this.todosTratamientos = this.todosTratamientos.filter(t => String(t.id_persona) !== String(mascota.id));
           await loading.dismiss(); this.mostrarToast('🗑️ Eliminada', 'success');
         } catch { await loading.dismiss(); this.mostrarToast('❌ Error al eliminar', 'danger'); }
       }}]
@@ -809,6 +866,124 @@ export class HomePage implements OnInit {
             } catch {
               await loading.dismiss();
               this.mostrarToast('❌ Error', 'danger');
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TRATAMIENTOS
+  // ══════════════════════════════════════════════════════════════════════════
+  abrirModalTratamientos(mascota: Mascota) {
+    this.mascotaSeleccionadaParaTratamientos = mascota;
+    this.modalTratamientos?.present();
+  }
+
+  cerrarModalTratamientos() {
+    this.mascotaSeleccionadaParaTratamientos = null;
+    this.modalTratamientos?.dismiss();
+  }
+
+  abrirFormularioTratamiento(tratamiento?: Tratamiento) {
+    if (tratamiento) {
+      this.editandoTratamientoId = tratamiento.id_tratamiento;
+      this.formTratamiento.patchValue({
+        nombre:        tratamiento.nombre,
+        tipo:          tratamiento.tipo,
+        diagnostico:   tratamiento.diagnostico,
+        dosis:         tratamiento.dosis,
+        veces_por_dia: tratamiento.veces_por_dia,
+        hora:          tratamiento.hora,
+        fecha_inicio:  this.aFormatoInput(tratamiento.fecha_inicio),
+        fecha_fin:     this.aFormatoInput(tratamiento.fecha_fin),
+        observaciones: tratamiento.observaciones
+      });
+    } else {
+      this.editandoTratamientoId = null;
+      this.formTratamiento.reset();
+      const ahora = new Date();
+      const hh = String(ahora.getHours()).padStart(2, '0');
+      const mm = String(ahora.getMinutes()).padStart(2, '0');
+      this.formTratamiento.patchValue({
+        hora: `${hh}:${mm}`,
+        fecha_inicio: `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`
+      });
+    }
+    this.modalTratamiento?.present();
+  }
+
+  cancelarTratamiento() {
+    this.editandoTratamientoId = null;
+    this.formTratamiento.reset();
+    this.modalTratamiento?.dismiss();
+  }
+
+  async guardarTratamiento() {
+    if (this.formTratamiento.invalid) { this.formTratamiento.markAllAsTouched(); return; }
+    if (!this.mascotaSeleccionadaParaTratamientos) return;
+
+    const esEdicion = !!this.editandoTratamientoId;
+    const loading = await this.loadingCtrl.create({ message: esEdicion ? 'Actualizando...' : 'Guardando...' });
+    await loading.present();
+
+    const val = this.formTratamiento.value;
+    const tratamiento: Tratamiento = {
+      id_tratamiento: this.editandoTratamientoId || Date.now().toString(),
+      id_persona:     this.mascotaSeleccionadaParaTratamientos.id,
+      nombre:         val.nombre,
+      tipo:           val.tipo,
+      diagnostico:    val.diagnostico,
+      dosis:          val.dosis,
+      veces_por_dia:  Number(val.veces_por_dia),
+      hora:           val.hora,
+      fecha_inicio:   this.aFormatoSheet(val.fecha_inicio),
+      fecha_fin:      this.aFormatoSheet(val.fecha_fin),
+      observaciones:  val.observaciones || '',
+      fechaRegistro:  this.fechaHoy
+    };
+
+    try {
+      await this.sheetsService.guardarTratamiento(tratamiento, esEdicion ? 'UPDATE' : 'CREATE');
+      if (esEdicion) {
+        this.todosTratamientos = this.todosTratamientos.map(t =>
+          t.id_tratamiento === tratamiento.id_tratamiento ? tratamiento : t
+        );
+      } else {
+        this.todosTratamientos = [...this.todosTratamientos, tratamiento];
+      }
+      this.recalcularCache();
+      await loading.dismiss();
+      this.cancelarTratamiento();
+      this.mostrarToast(esEdicion ? '✏️ Tratamiento actualizado' : '💊 Tratamiento registrado', 'success');
+    } catch {
+      await loading.dismiss();
+      this.mostrarToast('❌ Error al guardar', 'danger');
+    }
+  }
+
+  async eliminarTratamiento(tratamiento: Tratamiento) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar tratamiento',
+      message: `¿Eliminar tratamiento "${tratamiento.nombre}"?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar', role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({ message: 'Eliminando...' });
+            await loading.present();
+            try {
+              await this.sheetsService.eliminarTratamiento(tratamiento.id_tratamiento);
+              this.todosTratamientos = this.todosTratamientos.filter(t => t.id_tratamiento !== tratamiento.id_tratamiento);
+              this.recalcularCache();
+              await loading.dismiss();
+              this.mostrarToast('🗑️ Eliminado', 'success');
+            } catch {
+              await loading.dismiss();
+              this.mostrarToast('❌ Error al eliminar', 'danger');
             }
           }
         }

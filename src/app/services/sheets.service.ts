@@ -7,6 +7,7 @@ import { Vacuna } from '../models/vacuna.model';
 import { Desparasitacion } from '../models/desparasitacion.model';
 import { Comida } from '../models/comida.model';
 import { Excrecion } from '../models/excrecion.model';
+import { Tratamiento } from '../models/tratamiento.model';
 import { Observable } from 'rxjs';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
@@ -31,6 +32,9 @@ export class SheetsService {
   }
   obtenerComidas(): Observable<Comida[]> {
     return this.http.get<Comida[]>(`${this.url}?hoja=Comidas&t=${Date.now()}`);
+  }
+  obtenerTratamientos(): Observable<Tratamiento[]> {
+    return this.http.get<Tratamiento[]>(`${this.url}?hoja=Tratamientos&t=${Date.now()}`);
   }
   obtenerExcreciones(): Observable<Excrecion[]> {
     return this.http.get<Excrecion[]>(`${this.url}?hoja=Excreciones&t=${Date.now()}`);
@@ -60,6 +64,14 @@ export class SheetsService {
       c.cantidad, c.hora, c.observaciones,
       c.fechaRegistro, accion, 'Comidas'], accion);
   }
+  async guardarTratamiento(t: Tratamiento, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
+    await this.enviar([
+      t.id_tratamiento, t.id_persona, t.nombre, t.tipo,
+      t.diagnostico, t.dosis, t.veces_por_dia, t.hora,
+      t.fecha_inicio, t.fecha_fin, t.observaciones,
+      t.fechaRegistro, accion, 'Tratamientos'
+    ], accion);
+  }
   async guardarExcrecion(e: Excrecion, accion: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<void> {
     await this.enviar([e.id_excrecion, e.id_persona, e.tipo,
       e.cantidad, e.consistencia, e.color,
@@ -73,6 +85,7 @@ export class SheetsService {
   async eliminarVacuna(id: string): Promise<void> { await this.enviar(['DELETE', id, 'Vacunas'], 'DELETE'); }
   async eliminarDesparasitacion(id: string): Promise<void> { await this.enviar(['DELETE', id, 'Desparasitaciones'], 'DELETE'); }
   async eliminarComida(id: string): Promise<void> { await this.enviar(['DELETE', id, 'Comidas'], 'DELETE'); }
+  async eliminarTratamiento(id: string): Promise<void> { await this.enviar(['DELETE', id, 'Tratamientos'], 'DELETE'); }
   async eliminarExcrecion(id: string): Promise<void> { await this.enviar(['DELETE', id, 'Excreciones'], 'DELETE'); }
 
   // ─── ENVÍO UNIFICADO ──────────────────────────────────────────────────────

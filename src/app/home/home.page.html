@@ -63,6 +63,11 @@
               🧪 Excreciones hoy: <strong>{{ getExcrecionesHoy(mascota.id).length }}</strong>
             </p>
           </div>
+          <div style="background:#fce4ec; border-radius:8px; padding:8px 12px;">
+            <p style="margin:0; font-size:13px; color:#c62828">
+              💊 Tratamientos activos: <strong>{{ getTratamientosActivos(mascota.id).length }}</strong>
+            </p>
+          </div>
         </div>
 
         <!-- Botones -->
@@ -85,6 +90,9 @@
           </ion-button>
           <ion-button size="small" fill="outline" color="medium" (click)="abrirModalExcreciones(mascota)">
             <ion-icon name="flask-outline" slot="start"></ion-icon> Excreciones
+          </ion-button>
+          <ion-button size="small" fill="outline" color="danger" (click)="abrirModalTratamientos(mascota)">
+            <ion-icon name="medkit-outline" slot="start"></ion-icon> Tratamientos
           </ion-button>
           <ion-button size="small" fill="outline" color="danger" (click)="eliminarMascota(mascota)">
             <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
@@ -698,6 +706,169 @@
         <ion-button expand="block" color="medium" (click)="guardarExcrecion()">
           <ion-icon name="save-outline" slot="start"></ion-icon>
           {{ editandoExcrecionId ? 'Actualizar' : 'Guardar' }}
+        </ion-button>
+      </div>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Lista Tratamientos ════════════════════════════════════════════ -->
+<ion-modal #modalTratamientos>
+  <ng-template>
+    <ion-header><ion-toolbar color="danger">
+      <ion-title>💊 Tratamientos — {{ mascotaSeleccionadaParaTratamientos?.nombre }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cerrarModalTratamientos()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content>
+      <ng-container *ngIf="mascotaSeleccionadaParaTratamientos">
+
+        <!-- Tratamientos activos -->
+        <div style="margin:12px 12px 4px; font-size:12px; color:#888; font-weight:600; text-transform:uppercase;">
+          Tratamientos activos
+        </div>
+        <ng-container *ngIf="getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinActivos">
+          <ion-card *ngFor="let t of getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px; border-left:4px solid #e53935;">
+            <ion-card-content>
+              <p style="font-weight:700; font-size:15px; margin:0 0 6px">💊 {{ t.nombre }}
+                <span style="font-size:12px; font-weight:400; color:#888; margin-left:6px;">{{ t.tipo }}</span>
+              </p>
+              <p style="font-size:13px; margin:2px 0">🏥 Diagnóstico: <strong>{{ t.diagnostico }}</strong></p>
+              <p style="font-size:13px; margin:2px 0">💉 Dosis: <strong>{{ t.dosis }}</strong> · {{ t.veces_por_dia }}x/día · 🕐 {{ t.hora }}</p>
+              <p style="font-size:13px; margin:2px 0">📅 Inicio: <strong>{{ formatearFecha(t.fecha_inicio) }}</strong>
+                <span *ngIf="t.fecha_fin"> · Fin: <strong>{{ formatearFecha(t.fecha_fin) }}</strong></span>
+              </p>
+              <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="t.observaciones">📝 {{ t.observaciones }}</p>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
+                  <ion-icon name="create-outline" slot="start"></ion-icon> Editar
+                </ion-button>
+                <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
+                  <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ng-container>
+        <ng-template #sinActivos>
+          <div style="text-align:center; padding:20px; color:#aaa; font-size:13px;">Sin tratamientos activos</div>
+        </ng-template>
+
+        <!-- Todos los tratamientos -->
+        <div style="margin:12px 12px 4px; font-size:12px; color:#888; font-weight:600; text-transform:uppercase;">
+          Historial completo
+        </div>
+        <ng-container *ngIf="getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinTratamientos">
+          <ion-card *ngFor="let t of getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px;">
+            <ion-card-content>
+              <p style="font-weight:700; font-size:14px; margin:0 0 4px">{{ t.nombre }}
+                <span style="font-size:12px; font-weight:400; color:#888;">· {{ t.tipo }}</span>
+              </p>
+              <p style="font-size:13px; margin:2px 0">🏥 {{ t.diagnostico }}</p>
+              <p style="font-size:13px; margin:2px 0">💉 {{ t.dosis }} · {{ t.veces_por_dia }}x/día</p>
+              <p style="font-size:12px; margin:2px 0; color:#888">
+                {{ formatearFecha(t.fecha_inicio) }}{{ t.fecha_fin ? ' → ' + formatearFecha(t.fecha_fin) : '' }}
+              </p>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
+                  <ion-icon name="create-outline" slot="start"></ion-icon> Editar
+                </ion-button>
+                <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
+                  <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ng-container>
+        <ng-template #sinTratamientos>
+          <div style="text-align:center; padding:30px 20px; color:#aaa;">
+            <ion-icon name="medkit-outline" style="font-size:48px;"></ion-icon>
+            <p>Sin tratamientos registrados</p>
+          </div>
+        </ng-template>
+
+      </ng-container>
+      <div class="ion-padding">
+        <ion-button expand="block" color="danger" (click)="abrirFormularioTratamiento()">
+          <ion-icon name="add-circle-outline" slot="start"></ion-icon> Agregar tratamiento
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- ══ MODAL: Formulario Tratamiento ════════════════════════════════════════ -->
+<ion-modal #modalTratamiento>
+  <ng-template>
+    <ion-header><ion-toolbar color="danger">
+      <ion-title>{{ editandoTratamientoId ? 'Editar Tratamiento' : 'Nuevo Tratamiento' }}</ion-title>
+      <ion-buttons slot="end"><ion-button (click)="cancelarTratamiento()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
+    </ion-toolbar></ion-header>
+    <ion-content class="ion-padding">
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('nombre')">
+        <ion-label position="stacked">Nombre del tratamiento</ion-label>
+        <ion-input [formControl]="nombreTratCtrl" placeholder="Ej: Amoxicilina, Prednisolona"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('tipo')">
+        <ion-label position="stacked">Tipo</ion-label>
+        <ion-select [formControl]="tipoTratCtrl" placeholder="Seleccionar">
+          <ion-select-option value="Pastilla">💊 Pastilla</ion-select-option>
+          <ion-select-option value="Jarabe">🍶 Jarabe</ion-select-option>
+          <ion-select-option value="Inyección">💉 Inyección</ion-select-option>
+          <ion-select-option value="Gotas">💧 Gotas</ion-select-option>
+          <ion-select-option value="Pomada">🧴 Pomada</ion-select-option>
+          <ion-select-option value="Otro">📦 Otro</ion-select-option>
+        </ion-select>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('diagnostico')">
+        <ion-label position="stacked">Diagnóstico / Enfermedad</ion-label>
+        <ion-input [formControl]="diagnosticoCtrl" placeholder="Ej: Infección respiratoria, Alergia"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('dosis')">
+        <ion-label position="stacked">Dosis</ion-label>
+        <ion-input [formControl]="dosisCtrl" placeholder="Ej: 1 pastilla, 5ml, 0.5ml"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('veces_por_dia')">
+        <ion-label position="stacked">Veces por día</ion-label>
+        <ion-input type="number" [formControl]="vecesPorDiaCtrl" placeholder="Ej: 2"></ion-input>
+        <ion-note slot="error">Ingresa un número válido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('hora')">
+        <ion-label position="stacked">Hora (primera dosis)</ion-label>
+        <ion-input type="time" [formControl]="horaTratCtrl"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item [class.ion-invalid]="esInvalidoTratamiento('fecha_inicio')">
+        <ion-label position="stacked">Fecha de inicio</ion-label>
+        <ion-input type="date" [formControl]="fechaInicioCtrl"></ion-input>
+        <ion-note slot="error">Campo requerido</ion-note>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Fecha de fin (opcional)</ion-label>
+        <ion-input type="date" [formControl]="fechaFinCtrl"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Observaciones / Indicaciones del veterinario</ion-label>
+        <ion-input [formControl]="observacionesTratCtrl" placeholder="Ej: Dar con comida, no suspender antes"></ion-input>
+      </ion-item>
+
+      <div class="ion-padding-top">
+        <ion-button expand="block" color="danger" (click)="guardarTratamiento()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          {{ editandoTratamientoId ? 'Actualizar' : 'Guardar tratamiento' }}
         </ion-button>
       </div>
 
