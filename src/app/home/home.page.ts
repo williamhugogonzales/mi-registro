@@ -101,6 +101,7 @@ export class HomePage implements OnInit {
   set vistaComidas(val: string) {
     this._vistaComidas = val;
   }
+  vistaTratamientos: string = 'activos';
   fechaHoy: string = '';
 
   // Datos precalculados para evitar recalcular en cada ciclo de detección de cambios
@@ -879,6 +880,7 @@ export class HomePage implements OnInit {
   // ══════════════════════════════════════════════════════════════════════════
   abrirModalTratamientos(mascota: Mascota) {
     this.mascotaSeleccionadaParaTratamientos = mascota;
+    this.vistaTratamientos = 'activos';
     this.modalTratamientos?.present();
   }
 

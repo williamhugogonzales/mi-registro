@@ -721,78 +721,102 @@
       <ion-buttons slot="end"><ion-button (click)="cerrarModalTratamientos()"><ion-icon name="close-outline"></ion-icon></ion-button></ion-buttons>
     </ion-toolbar></ion-header>
     <ion-content>
+
+      <!-- Selector Activos / Historial -->
+      <div style="display:flex; margin:12px; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
+        <button
+          (click)="vistaTratamientos='activos'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaTratamientos==='activos' ? '#e53935' : '#f5f5f5'"
+          [style.color]="vistaTratamientos==='activos' ? '#fff' : '#333'">
+          Activos
+        </button>
+        <button
+          (click)="vistaTratamientos='historial'"
+          style="flex:1; padding:10px; border:none; cursor:pointer; font-size:14px; font-weight:600;"
+          [style.background]="vistaTratamientos==='historial' ? '#e53935' : '#f5f5f5'"
+          [style.color]="vistaTratamientos==='historial' ? '#fff' : '#333'">
+          Historial
+        </button>
+      </div>
+
       <ng-container *ngIf="mascotaSeleccionadaParaTratamientos">
 
-        <!-- Tratamientos activos -->
-        <div style="margin:12px 12px 4px; font-size:12px; color:#888; font-weight:600; text-transform:uppercase;">
-          Tratamientos activos
+        <!-- ─── ACTIVOS ──────────────────────────────────────────────── -->
+        <div *ngIf="vistaTratamientos === 'activos'">
+          <ng-container *ngIf="getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinActivos">
+            <ion-card *ngFor="let t of getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px; border-left:4px solid #e53935;">
+              <ion-card-content>
+                <p style="font-weight:700; font-size:15px; margin:0 0 6px">💊 {{ t.nombre }}
+                  <span style="font-size:12px; font-weight:400; color:#888; margin-left:6px;">{{ t.tipo }}</span>
+                </p>
+                <p style="font-size:13px; margin:2px 0">🏥 Diagnóstico: <strong>{{ t.diagnostico }}</strong></p>
+                <p style="font-size:13px; margin:2px 0">💉 Dosis: <strong>{{ t.dosis }}</strong> · {{ t.veces_por_dia }}x/día · 🕐 {{ t.hora }}</p>
+                <p style="font-size:13px; margin:2px 0">📅 Inicio: <strong>{{ formatearFecha(t.fecha_inicio) }}</strong>
+                  <span *ngIf="t.fecha_fin"> · Fin: <strong>{{ formatearFecha(t.fecha_fin) }}</strong></span>
+                </p>
+                <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="t.observaciones">📝 {{ t.observaciones }}</p>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
+                    <ion-icon name="create-outline" slot="start"></ion-icon> Editar
+                  </ion-button>
+                  <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
+                    <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ng-container>
+          <ng-template #sinActivos>
+            <div style="text-align:center; padding:40px 20px; color:#aaa;">
+              <ion-icon name="medkit-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin tratamientos activos</p>
+            </div>
+          </ng-template>
         </div>
-        <ng-container *ngIf="getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinActivos">
-          <ion-card *ngFor="let t of getTratamientosActivos(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px; border-left:4px solid #e53935;">
-            <ion-card-content>
-              <p style="font-weight:700; font-size:15px; margin:0 0 6px">💊 {{ t.nombre }}
-                <span style="font-size:12px; font-weight:400; color:#888; margin-left:6px;">{{ t.tipo }}</span>
-              </p>
-              <p style="font-size:13px; margin:2px 0">🏥 Diagnóstico: <strong>{{ t.diagnostico }}</strong></p>
-              <p style="font-size:13px; margin:2px 0">💉 Dosis: <strong>{{ t.dosis }}</strong> · {{ t.veces_por_dia }}x/día · 🕐 {{ t.hora }}</p>
-              <p style="font-size:13px; margin:2px 0">📅 Inicio: <strong>{{ formatearFecha(t.fecha_inicio) }}</strong>
-                <span *ngIf="t.fecha_fin"> · Fin: <strong>{{ formatearFecha(t.fecha_fin) }}</strong></span>
-              </p>
-              <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="t.observaciones">📝 {{ t.observaciones }}</p>
-              <div style="display:flex; gap:8px; margin-top:8px;">
-                <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
-                  <ion-icon name="create-outline" slot="start"></ion-icon> Editar
-                </ion-button>
-                <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
-                  <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
-        </ng-container>
-        <ng-template #sinActivos>
-          <div style="text-align:center; padding:20px; color:#aaa; font-size:13px;">Sin tratamientos activos</div>
-        </ng-template>
 
-        <!-- Todos los tratamientos -->
-        <div style="margin:12px 12px 4px; font-size:12px; color:#888; font-weight:600; text-transform:uppercase;">
-          Historial completo
+        <!-- ─── HISTORIAL ────────────────────────────────────────────── -->
+        <div *ngIf="vistaTratamientos === 'historial'">
+          <ng-container *ngIf="getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinTratamientos">
+            <ion-card *ngFor="let t of getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px;">
+              <ion-card-content>
+                <p style="font-weight:700; font-size:15px; margin:0 0 6px">💊 {{ t.nombre }}
+                  <span style="font-size:12px; font-weight:400; color:#888; margin-left:6px;">{{ t.tipo }}</span>
+                </p>
+                <p style="font-size:13px; margin:2px 0">🏥 {{ t.diagnostico }}</p>
+                <p style="font-size:13px; margin:2px 0">💉 {{ t.dosis }} · {{ t.veces_por_dia }}x/día · 🕐 {{ t.hora }}</p>
+                <p style="font-size:13px; margin:2px 0">
+                  📅 {{ formatearFecha(t.fecha_inicio) }}
+                  <span *ngIf="t.fecha_fin"> → {{ formatearFecha(t.fecha_fin) }}</span>
+                </p>
+                <p style="font-size:12px; margin:2px 0; color:#888" *ngIf="t.observaciones">📝 {{ t.observaciones }}</p>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
+                    <ion-icon name="create-outline" slot="start"></ion-icon> Editar
+                  </ion-button>
+                  <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
+                    <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ng-container>
+          <ng-template #sinTratamientos>
+            <div style="text-align:center; padding:40px 20px; color:#aaa;">
+              <ion-icon name="medkit-outline" style="font-size:48px;"></ion-icon>
+              <p>Sin tratamientos registrados</p>
+            </div>
+          </ng-template>
         </div>
-        <ng-container *ngIf="getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id).length > 0; else sinTratamientos">
-          <ion-card *ngFor="let t of getTratamientosDeMascota(mascotaSeleccionadaParaTratamientos.id)" style="margin:8px;">
-            <ion-card-content>
-              <p style="font-weight:700; font-size:14px; margin:0 0 4px">{{ t.nombre }}
-                <span style="font-size:12px; font-weight:400; color:#888;">· {{ t.tipo }}</span>
-              </p>
-              <p style="font-size:13px; margin:2px 0">🏥 {{ t.diagnostico }}</p>
-              <p style="font-size:13px; margin:2px 0">💉 {{ t.dosis }} · {{ t.veces_por_dia }}x/día</p>
-              <p style="font-size:12px; margin:2px 0; color:#888">
-                {{ formatearFecha(t.fecha_inicio) }}{{ t.fecha_fin ? ' → ' + formatearFecha(t.fecha_fin) : '' }}
-              </p>
-              <div style="display:flex; gap:8px; margin-top:8px;">
-                <ion-button size="small" fill="outline" color="primary" (click)="abrirFormularioTratamiento(t)">
-                  <ion-icon name="create-outline" slot="start"></ion-icon> Editar
-                </ion-button>
-                <ion-button size="small" fill="outline" color="danger" (click)="eliminarTratamiento(t)">
-                  <ion-icon name="trash-outline" slot="start"></ion-icon> Eliminar
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
-        </ng-container>
-        <ng-template #sinTratamientos>
-          <div style="text-align:center; padding:30px 20px; color:#aaa;">
-            <ion-icon name="medkit-outline" style="font-size:48px;"></ion-icon>
-            <p>Sin tratamientos registrados</p>
-          </div>
-        </ng-template>
 
       </ng-container>
+
       <div class="ion-padding">
         <ion-button expand="block" color="danger" (click)="abrirFormularioTratamiento()">
           <ion-icon name="add-circle-outline" slot="start"></ion-icon> Agregar tratamiento
         </ion-button>
       </div>
+
     </ion-content>
   </ng-template>
 </ion-modal>
